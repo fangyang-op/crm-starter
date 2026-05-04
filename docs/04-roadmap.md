@@ -25,10 +25,10 @@
 > 目的:把專案骨架搭起來,Auth + RLS 能跑,首頁可登入。
 
 ### 0.1 專案初始化
-- [ ] 用 `pnpm create next-app@latest` 建立 Next.js 14 專案(TypeScript + App Router + Tailwind)
-- [ ] 設定 `tsconfig.json` 路徑別名(`@/*` → `./*`)
-- [ ] 安裝 ESLint + Prettier + Husky + lint-staged
-- [ ] 建立 `.env.example` 與 `.env.local`(複製本專案附的)
+- [x] 用 `pnpm create next-app@latest` 建立 Next.js 14 專案(TypeScript + App Router + Tailwind)
+- [x] 設定 `tsconfig.json` 路徑別名(`@/*` → `./*`)
+- [x] 安裝 ESLint + Prettier + Husky + lint-staged
+- [x] 建立 `.env.example` 與 `.env.local`(複製本專案附的)
 
 ### 0.2 Supabase 設定
 - [ ] 在 [supabase.com](https://supabase.com) 開新專案(Region: Tokyo)
