@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" font-family="-apple-system, 'Segoe UI', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font-size: 22px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-size: 13px; fill: #64748b; }
+      .table-name { font-size: 14px; font-weight: 700; fill: #fff; }
+      .field { font-size: 11px; fill: #1e293b; }
+      .field-pk { font-weight: 700; fill: #0f172a; }
+      .field-fk { fill: #3b82f6; }
+      .legend-text { font-size: 12px; fill: #1e293b; }
+      .rel-label { font-size: 10px; fill: #475569; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1200" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="40" y="40" class="title">留學代辦 CRM ── 資料庫關聯圖</text>
+  <text x="40" y="62" class="subtitle">學生中心化架構 / 22 張資料表 / 顏色標示功能領域</text>
+
+  <!-- Legend -->
+  <g transform="translate(1080, 20)">
+    <rect x="0" y="0" width="490" height="58" fill="#fff" stroke="#e2e8f0" rx="6"/>
+    <g transform="translate(14, 16)">
+      <rect width="14" height="14" fill="#7c3aed" rx="2"/>
+      <text x="20" y="11" class="legend-text">身份</text>
+    </g>
+    <g transform="translate(82, 16)">
+      <rect width="14" height="14" fill="#0ea5e9" rx="2"/>
+      <text x="20" y="11" class="legend-text">學生核心</text>
+    </g>
+    <g transform="translate(170, 16)">
+      <rect width="14" height="14" fill="#10b981" rx="2"/>
+      <text x="20" y="11" class="legend-text">銷售</text>
+    </g>
+    <g transform="translate(238, 16)">
+      <rect width="14" height="14" fill="#f59e0b" rx="2"/>
+      <text x="20" y="11" class="legend-text">學校</text>
+    </g>
+    <g transform="translate(306, 16)">
+      <rect width="14" height="14" fill="#ef4444" rx="2"/>
+      <text x="20" y="11" class="legend-text">申請</text>
+    </g>
+    <g transform="translate(374, 16)">
+      <rect width="14" height="14" fill="#eab308" rx="2"/>
+      <text x="20" y="11" class="legend-text">文件</text>
+    </g>
+    <g transform="translate(14, 38)">
+      <rect width="14" height="14" fill="#64748b" rx="2"/>
+      <text x="20" y="11" class="legend-text">追蹤/帳本</text>
+    </g>
+    <g transform="translate(110, 38)">
+      <text class="field-fk" font-size="14" font-weight="700">藍字</text>
+      <text x="40" y="0" class="legend-text">= 外鍵 (FK)</text>
+    </g>
+  </g>
+
+  <!-- ============ ROW 1: IDENTITY ============ -->
+  <!-- profiles -->
+  <g transform="translate(40, 100)">
+    <rect width="200" height="130" fill="#fff" stroke="#7c3aed" stroke-width="2" rx="6"/>
+    <rect width="200" height="28" fill="#7c3aed" rx="6"/>
+    <rect y="22" width="200" height="8" fill="#7c3aed"/>
+    <text x="12" y="19" class="table-name">profiles</text>
+    <text x="12" y="48" class="field field-pk">id (PK = auth.users)</text>
+    <text x="12" y="64" class="field">email</text>
+    <text x="12" y="80" class="field">full_name</text>
+    <text x="12" y="96" class="field">role (enum)</text>
+    <text x="12" y="112" class="field">department</text>
+    <text x="12" y="124" class="field" font-style="italic" fill="#64748b">+ is_active, ...</text>
+  </g>
+
+  <!-- referrers -->
+  <g transform="translate(280, 100)">
+    <rect width="200" height="130" fill="#fff" stroke="#7c3aed" stroke-width="2" rx="6"/>
+    <rect width="200" height="28" fill="#7c3aed" rx="6"/>
+    <rect y="22" width="200" height="8" fill="#7c3aed"/>
+    <text x="12" y="19" class="table-name">referrers</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field">name</text>
+    <text x="12" y="80" class="field">type</text>
+    <text x="12" y="96" class="field">contact_email</text>
+    <text x="12" y="112" class="field">contact_phone</text>
+    <text x="12" y="124" class="field" font-style="italic" fill="#64748b">外部轉介人(非系統用戶)</text>
+  </g>
+
+  <!-- activity_log -->
+  <g transform="translate(1320, 100)">
+    <rect width="240" height="130" fill="#fff" stroke="#64748b" stroke-width="2" rx="6"/>
+    <rect width="240" height="28" fill="#64748b" rx="6"/>
+    <rect y="22" width="240" height="8" fill="#64748b"/>
+    <text x="12" y="19" class="table-name">activity_log</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">actor_id (FK profiles)</text>
+    <text x="12" y="96" class="field">action / entity_type</text>
+    <text x="12" y="112" class="field">payload (JSONB)</text>
+    <text x="12" y="124" class="field" font-style="italic" fill="#64748b">統一事件流</text>
+  </g>
+
+  <!-- ============ ROW 2: STUDENT CORE (CENTER) ============ -->
+  
+  <!-- student_status_history -->
+  <g transform="translate(40, 290)">
+    <rect width="220" height="120" fill="#fff" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#0ea5e9" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#0ea5e9"/>
+    <text x="12" y="19" class="table-name">student_status_history</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">from_status / to_status</text>
+    <text x="12" y="96" class="field field-fk">changed_by (FK)</text>
+    <text x="12" y="112" class="field">note, changed_at</text>
+  </g>
+
+  <!-- STUDENTS (CENTER, EMPHASIZED) -->
+  <g transform="translate(580, 270)">
+    <rect width="280" height="220" fill="#fff" stroke="#0ea5e9" stroke-width="3" rx="8"/>
+    <rect width="280" height="36" fill="#0ea5e9" rx="6"/>
+    <rect y="30" width="280" height="8" fill="#0ea5e9"/>
+    <text x="14" y="24" class="table-name" font-size="16">⭐ students</text>
+    <text x="14" y="58" class="field field-pk">id (PK)</text>
+    <text x="14" y="74" class="field">full_name / english_name</text>
+    <text x="14" y="90" class="field">email / phone / line_id</text>
+    <text x="14" y="106" class="field">current_school / major / degree</text>
+    <text x="14" y="122" class="field">target_country [] / target_degree</text>
+    <text x="14" y="138" class="field">status (enum 13 種)</text>
+    <text x="14" y="154" class="field field-fk">frontend_consultant_id (FK)</text>
+    <text x="14" y="170" class="field field-fk">backend_consultant_id (FK)</text>
+    <text x="14" y="186" class="field">lead_source_type (enum)</text>
+    <text x="14" y="202" class="field field-fk">lead_source_user_id / referrer_id</text>
+    <text x="14" y="214" class="field" font-style="italic" fill="#64748b">deleted_at(soft delete)</text>
+  </g>
+
+  <!-- consultant_handovers -->
+  <g transform="translate(1180, 290)">
+    <rect width="220" height="120" fill="#fff" stroke="#0ea5e9" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#0ea5e9" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#0ea5e9"/>
+    <text x="12" y="19" class="table-name">consultant_handovers</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">handover_type</text>
+    <text x="12" y="96" class="field field-fk">from / to_consultant_id</text>
+    <text x="12" y="112" class="field">reason, handed_at</text>
+  </g>
+
+  <!-- ============ ROW 3-LEFT: DOCUMENTS ============ -->
+  <!-- documents_master -->
+  <g transform="translate(40, 540)">
+    <rect width="220" height="120" fill="#fff" stroke="#eab308" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#eab308" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#eab308"/>
+    <text x="12" y="19" class="table-name">documents_master</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">doc_type / title</text>
+    <text x="12" y="96" class="field field-fk">current_version_id (FK)</text>
+    <text x="12" y="112" class="field" font-style="italic" fill="#64748b">學生層級主版本</text>
+  </g>
+
+  <!-- documents_master_versions -->
+  <g transform="translate(40, 680)">
+    <rect width="220" height="120" fill="#fff" stroke="#eab308" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#eab308" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#eab308"/>
+    <text x="12" y="19" class="table-name">documents_master_versions</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">master_id (FK)</text>
+    <text x="12" y="80" class="field">version_number / content</text>
+    <text x="12" y="96" class="field">word_count</text>
+    <text x="12" y="112" class="field">word_diff_from_previous</text>
+  </g>
+
+  <!-- documents_variants -->
+  <g transform="translate(40, 820)">
+    <rect width="220" height="120" fill="#fff" stroke="#eab308" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#eab308" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#eab308"/>
+    <text x="12" y="19" class="table-name">documents_variants</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">master_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">application_id (FK)</text>
+    <text x="12" y="96" class="field">forked_from_master_version</text>
+    <text x="12" y="112" class="field" font-style="italic" fill="#64748b">學校客製版本</text>
+  </g>
+
+  <!-- documents_variant_versions -->
+  <g transform="translate(40, 960)">
+    <rect width="220" height="100" fill="#fff" stroke="#eab308" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#eab308" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#eab308"/>
+    <text x="12" y="19" class="table-name">documents_variant_versions</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">variant_id (FK)</text>
+    <text x="12" y="80" class="field">version_number</text>
+    <text x="12" y="96" class="field">word_count / word_diff</text>
+  </g>
+
+  <!-- ============ ROW 3-CENTER-RIGHT: SALES ============ -->
+  <!-- service_plans -->
+  <g transform="translate(300, 540)">
+    <rect width="200" height="120" fill="#fff" stroke="#10b981" stroke-width="2" rx="6"/>
+    <rect width="200" height="28" fill="#10b981" rx="6"/>
+    <rect y="22" width="200" height="8" fill="#10b981"/>
+    <text x="12" y="19" class="table-name">service_plans</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field">code / name</text>
+    <text x="12" y="80" class="field">base_price</text>
+    <text x="12" y="96" class="field">included_school_count</text>
+    <text x="12" y="112" class="field">included_word_quota</text>
+  </g>
+
+  <!-- addon_pricing -->
+  <g transform="translate(300, 680)">
+    <rect width="200" height="100" fill="#fff" stroke="#10b981" stroke-width="2" rx="6"/>
+    <rect width="200" height="28" fill="#10b981" rx="6"/>
+    <rect y="22" width="200" height="8" fill="#10b981"/>
+    <text x="12" y="19" class="table-name">addon_pricing</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field">type</text>
+    <text x="12" y="80" class="field">name</text>
+    <text x="12" y="96" class="field">unit_price</text>
+  </g>
+
+  <!-- deals -->
+  <g transform="translate(540, 540)">
+    <rect width="220" height="170" fill="#fff" stroke="#10b981" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#10b981" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#10b981"/>
+    <text x="12" y="19" class="table-name">deals</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">plan_id (FK)</text>
+    <text x="12" y="96" class="field">extra_school_count</text>
+    <text x="12" y="112" class="field">extra_word_quota</text>
+    <text x="12" y="128" class="field">base / addon / discount / final</text>
+    <text x="12" y="144" class="field">signed_at / contract_no</text>
+    <text x="12" y="160" class="field">payment_status</text>
+  </g>
+
+  <!-- deal_commission_splits -->
+  <g transform="translate(800, 540)">
+    <rect width="240" height="160" fill="#fff" stroke="#10b981" stroke-width="2" rx="6"/>
+    <rect width="240" height="28" fill="#10b981" rx="6"/>
+    <rect y="22" width="240" height="8" fill="#10b981"/>
+    <text x="12" y="19" class="table-name">deal_commission_splits</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">deal_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">recipient_user_id (FK profiles)</text>
+    <text x="12" y="96" class="field field-fk">recipient_referrer_id (FK)</text>
+    <text x="12" y="112" class="field">role_in_deal</text>
+    <text x="12" y="128" class="field">percentage / amount</text>
+    <text x="12" y="146" class="field" font-style="italic" fill="#64748b">CHECK: 二擇一</text>
+  </g>
+
+  <!-- ============ ROW 3-RIGHT: SCHOOLS ============ -->
+  <!-- schools -->
+  <g transform="translate(1080, 540)">
+    <rect width="220" height="160" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#f59e0b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#f59e0b"/>
+    <text x="12" y="19" class="table-name">schools</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field">name_en / name_zh</text>
+    <text x="12" y="80" class="field">country / city</text>
+    <text x="12" y="96" class="field">ranking_qs / ranking_us_news</text>
+    <text x="12" y="112" class="field">is_partner</text>
+    <text x="12" y="128" class="field">partner_commission_rate</text>
+  </g>
+
+  <!-- school_programs -->
+  <g transform="translate(1340, 540)">
+    <rect width="220" height="140" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#f59e0b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#f59e0b"/>
+    <text x="12" y="19" class="table-name">school_programs</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">school_id (FK)</text>
+    <text x="12" y="80" class="field">program_name</text>
+    <text x="12" y="96" class="field">degree_level / major_category</text>
+    <text x="12" y="112" class="field">application_deadline_round1/2</text>
+  </g>
+
+  <!-- school_lists -->
+  <g transform="translate(1080, 720)">
+    <rect width="220" height="120" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#f59e0b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#f59e0b"/>
+    <text x="12" y="19" class="table-name">school_lists</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">version_number / name</text>
+    <text x="12" y="96" class="field">is_locked / is_current</text>
+    <text x="12" y="112" class="field" font-style="italic" fill="#64748b">多版本選校表</text>
+  </g>
+
+  <!-- school_list_items -->
+  <g transform="translate(1340, 720)">
+    <rect width="220" height="120" fill="#fff" stroke="#f59e0b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#f59e0b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#f59e0b"/>
+    <text x="12" y="19" class="table-name">school_list_items</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">school_list_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">school_id (FK)</text>
+    <text x="12" y="96" class="field field-fk">program_id (FK)</text>
+    <text x="12" y="112" class="field">tier / display_order</text>
+  </g>
+
+  <!-- ============ ROW 4: APPLICATIONS ============ -->
+  <!-- applications -->
+  <g transform="translate(540, 760)">
+    <rect width="240" height="180" fill="#fff" stroke="#ef4444" stroke-width="2" rx="6"/>
+    <rect width="240" height="28" fill="#ef4444" rx="6"/>
+    <rect y="22" width="240" height="8" fill="#ef4444"/>
+    <text x="12" y="19" class="table-name">applications</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">school_id / program_id (FK)</text>
+    <text x="12" y="96" class="field">status (enum 9 種)</text>
+    <text x="12" y="112" class="field">deadline / submitted_at</text>
+    <text x="12" y="128" class="field">portal_url / username</text>
+    <text x="12" y="144" class="field" fill="#dc2626" font-weight="700">portal_password_encrypted 🔒</text>
+    <text x="12" y="160" class="field">application_fee / paid</text>
+  </g>
+
+  <!-- ============ ROW 5: TRACKING ============ -->
+  <!-- word_quota_ledger -->
+  <g transform="translate(540, 980)">
+    <rect width="240" height="160" fill="#fff" stroke="#64748b" stroke-width="2" rx="6"/>
+    <rect width="240" height="28" fill="#64748b" rx="6"/>
+    <rect y="22" width="240" height="8" fill="#64748b"/>
+    <text x="12" y="19" class="table-name">⚖ word_quota_ledger</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">transaction_type (enum)</text>
+    <text x="12" y="96" class="field">amount(正/負)</text>
+    <text x="12" y="112" class="field">balance_after</text>
+    <text x="12" y="128" class="field field-fk">related_deal/version (FK)</text>
+    <text x="12" y="144" class="field" font-style="italic" fill="#64748b">INSERT only(會計帳本)</text>
+  </g>
+
+  <!-- academic_scores -->
+  <g transform="translate(820, 760)">
+    <rect width="220" height="160" fill="#fff" stroke="#64748b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#64748b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#64748b"/>
+    <text x="12" y="19" class="table-name">academic_scores</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">student_id (FK)</text>
+    <text x="12" y="80" class="field">score_type (enum)</text>
+    <text x="12" y="96" class="field">total_score</text>
+    <text x="12" y="112" class="field">sub_scores (JSONB)</text>
+    <text x="12" y="128" class="field">test_date / expiry_date</text>
+    <text x="12" y="144" class="field">certificate_storage_path</text>
+  </g>
+
+  <!-- commission_records -->
+  <g transform="translate(820, 950)">
+    <rect width="220" height="140" fill="#fff" stroke="#64748b" stroke-width="2" rx="6"/>
+    <rect width="220" height="28" fill="#64748b" rx="6"/>
+    <rect y="22" width="220" height="8" fill="#64748b"/>
+    <text x="12" y="19" class="table-name">commission_records</text>
+    <text x="12" y="48" class="field field-pk">id (PK)</text>
+    <text x="12" y="64" class="field field-fk">application_id (FK)</text>
+    <text x="12" y="80" class="field field-fk">school_id / student_id (FK)</text>
+    <text x="12" y="96" class="field">expected / actual_amount</text>
+    <text x="12" y="112" class="field">status / received_at</text>
+    <text x="12" y="128" class="field" font-style="italic" fill="#64748b">合作學校回傭</text>
+  </g>
+
+  <!-- ============ RELATIONSHIPS (主要連線) ============ -->
+
+  <!-- profiles → students (frontend & backend consultant) -->
+  <path d="M 240 165 Q 400 165 580 320" stroke="#7c3aed" stroke-width="1.5" fill="none" marker-end="url(#arrow)" stroke-dasharray="4,2"/>
+  <text x="380" y="195" class="rel-label" fill="#7c3aed">consultants</text>
+
+  <!-- referrers → students -->
+  <path d="M 480 200 Q 540 240 600 270" stroke="#7c3aed" stroke-width="1.5" fill="none" marker-end="url(#arrow)" stroke-dasharray="4,2"/>
+  <text x="500" y="240" class="rel-label" fill="#7c3aed">lead_source</text>
+
+  <!-- students → student_status_history -->
+  <path d="M 580 380 L 260 350" stroke="#0ea5e9" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- students → consultant_handovers -->
+  <path d="M 860 350 L 1180 350" stroke="#0ea5e9" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- students → activity_log -->
+  <path d="M 860 290 Q 1100 200 1320 165" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- students → deals -->
+  <path d="M 720 490 L 650 540" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- service_plans → deals -->
+  <path d="M 500 600 L 540 600" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- deals → deal_commission_splits -->
+  <path d="M 760 600 L 800 600" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- profiles → deal_commission_splits -->
+  <path d="M 140 230 Q 200 460 800 600" stroke="#7c3aed" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3" opacity="0.5"/>
+
+  <!-- referrers → deal_commission_splits -->
+  <path d="M 380 230 Q 600 460 800 620" stroke="#7c3aed" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3" opacity="0.5"/>
+
+  <!-- students → school_lists -->
+  <path d="M 860 430 Q 1000 600 1080 750" stroke="#0ea5e9" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- school_lists → school_list_items -->
+  <path d="M 1300 770 L 1340 770" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- schools → school_list_items -->
+  <path d="M 1300 620 Q 1450 670 1450 720" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- schools → school_programs -->
+  <path d="M 1300 600 L 1340 600" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- students → applications -->
+  <path d="M 720 490 L 660 760" stroke="#ef4444" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- school_list_items → applications (source) -->
+  <path d="M 1340 800 Q 900 850 780 850" stroke="#ef4444" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3" opacity="0.6"/>
+
+  <!-- schools → applications -->
+  <path d="M 1080 650 Q 900 700 780 800" stroke="#f59e0b" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3" opacity="0.6"/>
+
+  <!-- students → documents_master -->
+  <path d="M 580 380 Q 350 460 260 540" stroke="#eab308" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- documents_master → documents_master_versions -->
+  <path d="M 150 660 L 150 680" stroke="#eab308" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- documents_master → documents_variants -->
+  <path d="M 150 660 Q 100 740 150 820" stroke="#eab308" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- documents_variants → documents_variant_versions -->
+  <path d="M 150 940 L 150 960" stroke="#eab308" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- applications → documents_variants -->
+  <path d="M 540 850 L 260 870" stroke="#ef4444" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3" opacity="0.6"/>
+
+  <!-- students → word_quota_ledger -->
+  <path d="M 720 490 Q 720 760 660 980" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- students → academic_scores -->
+  <path d="M 860 430 Q 870 600 880 760" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- applications → commission_records -->
+  <path d="M 780 880 Q 850 920 880 950" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- ============ FOOTNOTE ============ -->
+  <text x="40" y="1180" class="subtitle">⚖ word_quota_ledger 為 INSERT-only 帳本式設計 ─ 每筆字數異動可完整追溯  /  🔒 portal_password_encrypted 為 AES-256-GCM 加密儲存</text>
+</svg>

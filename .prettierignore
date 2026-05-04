@@ -1,0 +1,12 @@
+.next/
+out/
+build/
+dist/
+node_modules/
+coverage/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+*.md
+docs/
+supabase/migrations/
