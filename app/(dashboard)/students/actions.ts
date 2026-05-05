@@ -93,13 +93,22 @@ export async function softDeleteStudent(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: '缺少學生 id' }
 
   const supabase = createClient()
-  const { error } = await supabase
-    .from('students')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+
+  // Goes through SECURITY DEFINER function (migration 0004) because direct
+  // UPDATE under RLS WITH CHECK returned "new row violates RLS" for admin
+  // even with role=admin and is_manager_or_admin() returning true. The
+  // function does its own permission check in plpgsql before updating.
+  // Cast: function not in generated Database types yet — run `npm run gen:types`
+  // after this migration has been applied to remove the cast.
+  const { error } = await supabase.rpc(
+    'soft_delete_student' as never,
+    {
+      p_id: id,
+    } as never,
+  )
 
   if (error) {
-    return { ok: false, error: `刪除失敗:${error.message}` }
+    return { ok: false, error: `刪除失敗:${(error as { message: string }).message}` }
   }
 
   revalidatePath('/students')

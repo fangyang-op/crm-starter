@@ -9,6 +9,7 @@ import {
   Lock,
   type LucideIcon,
   Send,
+  Trash2,
   UserCircle,
   UserPlus,
 } from 'lucide-react'
@@ -46,6 +47,12 @@ export function formatActivity(activity: ActivityRow, actorName?: string): Activ
         icon: FileEdit,
         iconClass: 'text-slate-600',
         description: `${actor} 更新了學生資料`,
+      }
+    case 'student_deleted':
+      return {
+        icon: Trash2,
+        iconClass: 'text-destructive',
+        description: `${actor} 刪除了這位學生`,
       }
     case 'status_changed': {
       const from = statusLabel(payload.from)
