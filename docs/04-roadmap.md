@@ -117,8 +117,8 @@
 - [x] 寫入 `consultant_handovers`(在 `update_student` SD 函式內偵測 FE/BE 差異自動寫,同時寫一筆 `consultant_assigned` activity_log)
 
 ### 1.6 方案管理
-- [ ] `app/(dashboard)/settings/plans/` — 方案 CRUD(僅 admin)
-- [ ] 方案啟用/停用切換
+- [x] `app/(dashboard)/settings/plans/` — 方案 CRUD(僅 admin,layout 已 gate;CUD 走 `create_service_plan` / `update_service_plan` SD 函式 / migration 0008)
+- [x] 方案啟用/停用切換(form 內 `is_active` checkbox,列表用 Badge 顯示啟用中/已停用)
 
 ### 1.7 成交流程
 - [ ] 學生主頁「建立成交」按鈕

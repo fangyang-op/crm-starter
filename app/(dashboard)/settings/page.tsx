@@ -46,18 +46,20 @@ export default async function SettingsIndexPage() {
         </Link>
 
         {isAdmin(role) ? (
-          <Card className="opacity-60">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Package className="text-muted-foreground" size={20} />
-                <CardTitle className="text-base">服務方案</CardTitle>
-              </div>
-              <span className="text-xs text-muted-foreground">Phase 1.6</span>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>方案 / 加購單價管理(Phase 1.6 將開放)。</CardDescription>
-            </CardContent>
-          </Card>
+          <Link href="/settings/plans">
+            <Card className="transition-colors hover:border-primary">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Package className="text-muted-foreground" size={20} />
+                  <CardTitle className="text-base">服務方案</CardTitle>
+                </div>
+                <ChevronRight className="text-muted-foreground" size={16} />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>方案內容、價格、加購單價(僅 admin)。</CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
         ) : null}
       </div>
     </div>
