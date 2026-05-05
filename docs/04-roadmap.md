@@ -105,10 +105,10 @@
 - [x] UI 顯示狀態徽章(已於 1.1 完成)+ 點擊 Dialog 切換狀態
 
 ### 1.4 名單來源 + 轉介人
-- [ ] 新增/編輯學生時選擇 `lead_source_type`
-- [ ] 動態欄位:選 `marketing_dept` / `consultant_referral` 顯示同事 dropdown
-- [ ] 選 `external_referrer` / `brand_introduction` 顯示 referrer dropdown
-- [ ] `app/(dashboard)/settings/referrers/` — 外部轉介人管理(僅 manager+)
+- [x] 新增/編輯學生時選擇 `lead_source_type`(在 1.1 已建,1.4 加上動態欄位邏輯)
+- [x] 動態欄位:選 `marketing_dept` / `consultant_referral` 顯示同事 dropdown(切換來源類型自動清空前一個欄位)
+- [x] 選 `external_referrer` / `brand_introduction` 顯示 referrer dropdown
+- [x] `app/(dashboard)/settings/referrers/` — 外部轉介人管理(`/settings` 已開放給 manager+;CUD 走 `create_referrer` / `update_referrer` SECURITY DEFINER 函式 / migration 0006)
 
 ### 1.5 顧問派發 / 交接
 - [ ] 新增學生時 `frontend_consultant_id` 預設為當前使用者

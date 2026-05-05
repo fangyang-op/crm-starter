@@ -41,7 +41,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: LineChart,
     roles: ['manager_frontend', 'manager_backend', 'admin'],
   },
-  { href: '/settings', label: '設定', icon: Settings, roles: ['admin'] },
+  {
+    href: '/settings',
+    label: '設定',
+    icon: Settings,
+    roles: ['manager_frontend', 'manager_backend', 'admin'],
+  },
 ]
 
 function isActive(pathname: string, href: string) {

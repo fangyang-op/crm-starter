@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useTransition } from 'react'
+import { useEffect, useTransition } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -45,6 +45,7 @@ export type StudentFormProps = {
   currentUserId: string
   currentUserRole: UserRole
   consultantOptions: Array<{ id: string; name: string }>
+  referrerOptions: Array<{ id: string; name: string; type: string }>
   onSubmit: (input: StudentInput) => Promise<ActionResult>
 }
 
@@ -118,6 +119,7 @@ export function StudentForm({
   currentUserId,
   currentUserRole,
   consultantOptions,
+  referrerOptions,
   onSubmit,
 }: StudentFormProps) {
   const router = useRouter()
@@ -128,6 +130,19 @@ export function StudentForm({
     resolver: zodResolver(studentBaseSchema),
     defaultValues: defaultValuesFor(initialValues, currentUserId),
   })
+
+  const leadSourceType = form.watch('lead_source_type')
+  const showInternalUserField =
+    leadSourceType === 'marketing_dept' || leadSourceType === 'consultant_referral'
+  const showReferrerField =
+    leadSourceType === 'external_referrer' || leadSourceType === 'brand_introduction'
+
+  // Clear the irrelevant field when type switches.
+  useEffect(() => {
+    if (!showInternalUserField) form.setValue('lead_source_user_id', null)
+    if (!showReferrerField) form.setValue('lead_source_referrer_id', null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadSourceType])
 
   const handleSubmit = form.handleSubmit((data) => {
     startTransition(async () => {
@@ -455,13 +470,80 @@ export function StudentForm({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Phase 1.4 會依來源類型展開對應的同事 / 轉介人欄位。
-                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {showInternalUserField ? (
+              <FormField
+                control={form.control}
+                name="lead_source_user_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {leadSourceType === 'marketing_dept' ? '行銷部同事' : '介紹同事'}
+                    </FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                      value={field.value ?? '__none__'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="選擇同事" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">尚未指定</SelectItem>
+                        {consultantOptions.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
+            {showReferrerField ? (
+              <FormField
+                control={form.control}
+                name="lead_source_referrer_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {leadSourceType === 'brand_introduction' ? '介紹品牌' : '轉介人'}
+                    </FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                      value={field.value ?? '__none__'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="選擇轉介人" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">尚未指定</SelectItem>
+                        {referrerOptions.length === 0 ? (
+                          <SelectItem value="__empty__" disabled>
+                            尚無轉介人(請先到 設定 → 轉介人 新增)
+                          </SelectItem>
+                        ) : (
+                          referrerOptions.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
             <FormField
               control={form.control}
               name="lead_source_note"

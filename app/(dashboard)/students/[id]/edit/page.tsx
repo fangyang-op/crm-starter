@@ -39,6 +39,18 @@ export default async function EditStudentPage({ params }: { params: { id: string
     name: p.display_name || p.full_name,
   }))
 
+  const { data: referrers } = await supabase
+    .from('referrers')
+    .select('id, name, type')
+    .eq('is_active', true)
+    .order('name')
+
+  const referrerOptions = (referrers ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+  }))
+
   const initialValues: Partial<StudentInput> = {
     full_name: student.full_name,
     english_name: student.english_name,
@@ -77,6 +89,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
         currentUserId={user.id}
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
+        referrerOptions={referrerOptions}
         onSubmit={updateThisStudent}
       />
     </div>

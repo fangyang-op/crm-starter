@@ -73,19 +73,28 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   }
   if (!student) notFound()
 
-  const consultantIds = [student.frontend_consultant_id, student.backend_consultant_id].filter(
-    (v): v is string => Boolean(v),
-  )
+  const profileIds = [
+    student.frontend_consultant_id,
+    student.backend_consultant_id,
+    student.lead_source_user_id,
+  ].filter((v): v is string => Boolean(v))
   const { data: consultants } =
-    consultantIds.length > 0
-      ? await supabase
-          .from('profiles')
-          .select('id, full_name, display_name')
-          .in('id', consultantIds)
+    profileIds.length > 0
+      ? await supabase.from('profiles').select('id, full_name, display_name').in('id', profileIds)
       : { data: [] as Array<{ id: string; full_name: string; display_name: string | null }> }
   const consultantMap = new Map(
     (consultants ?? []).map((c) => [c.id, c.display_name || c.full_name]),
   )
+
+  const sourceReferrerName = student.lead_source_referrer_id
+    ? ((
+        await supabase
+          .from('referrers')
+          .select('name')
+          .eq('id', student.lead_source_referrer_id)
+          .maybeSingle()
+      ).data?.name ?? null)
+    : null
 
   const role = me.role as UserRole
   const canDelete = isManagerOrAdmin(role)
@@ -219,6 +228,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               <CardContent className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
                 <span className="text-muted-foreground">來源類型</span>
                 {fmt(LEAD_SOURCE_LABELS[student.lead_source_type] ?? student.lead_source_type)}
+                {student.lead_source_user_id ? (
+                  <>
+                    <span className="text-muted-foreground">來源同事</span>
+                    {fmt(consultantMap.get(student.lead_source_user_id) ?? '—')}
+                  </>
+                ) : null}
+                {student.lead_source_referrer_id ? (
+                  <>
+                    <span className="text-muted-foreground">轉介人</span>
+                    {fmt(sourceReferrerName)}
+                  </>
+                ) : null}
                 <span className="text-muted-foreground">來源備註</span>
                 {fmt(student.lead_source_note)}
                 <span className="text-muted-foreground">前端顧問</span>

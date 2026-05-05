@@ -29,6 +29,18 @@ export default async function NewStudentPage() {
     name: p.display_name || p.full_name,
   }))
 
+  const { data: referrers } = await supabase
+    .from('referrers')
+    .select('id, name, type')
+    .eq('is_active', true)
+    .order('name')
+
+  const referrerOptions = (referrers ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+  }))
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-6">
       <header className="mb-6">
@@ -42,6 +54,7 @@ export default async function NewStudentPage() {
         currentUserId={user.id}
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
+        referrerOptions={referrerOptions}
         onSubmit={createStudent}
       />
     </div>
