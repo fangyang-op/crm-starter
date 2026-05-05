@@ -31,13 +31,13 @@
 - [x] 建立 `.env.example` 與 `.env.local`(複製本專案附的)
 
 ### 0.2 Supabase 設定
-- [ ] 在 [supabase.com](https://supabase.com) 開新專案(Region: Tokyo)
-- [ ] 取得 URL / anon key / service_role key 填入 `.env.local`
-- [ ] 安裝 `@supabase/supabase-js` 與 `@supabase/ssr`
-- [ ] 建立 `lib/supabase/client.ts`(browser client)
-- [ ] 建立 `lib/supabase/server.ts`(server client,讀 cookie)
-- [ ] 建立 `lib/supabase/middleware.ts`(refresh JWT)
-- [ ] 在根目錄 `middleware.ts` 整合上面 middleware
+- [x] 在 [supabase.com](https://supabase.com) 開新專案(Region: Tokyo)
+- [x] 取得 URL / anon key / service_role key 填入 `.env.local`
+- [x] 安裝 `@supabase/supabase-js` 與 `@supabase/ssr`
+- [x] 建立 `lib/supabase/client.ts`(browser client)
+- [x] 建立 `lib/supabase/server.ts`(server client,讀 cookie)
+- [x] 建立 `lib/supabase/middleware.ts`(refresh JWT)
+- [x] 在根目錄 `middleware.ts` 整合上面 middleware
 
 ### 0.3 執行第一份 Migration
 - [ ] 在 Supabase Dashboard → SQL Editor
