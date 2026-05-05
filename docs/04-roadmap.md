@@ -52,11 +52,11 @@
 - [x] 建立 `lib/utils.ts`(cn 函式 helper)
 
 ### 0.5 Auth 流程
-- [ ] `app/(auth)/login/page.tsx` — 登入頁(email + password)
-- [ ] `app/(auth)/login/actions.ts` — Server Action 處理登入
-- [ ] 登入後自動 redirect `/`
-- [ ] `app/(auth)/logout/route.ts` — 登出 API
-- [ ] 未登入訪問 `(dashboard)/*` 自動踢回登入
+- [x] `app/(auth)/login/page.tsx` — 登入頁(email + password)
+- [x] `app/(auth)/login/actions.ts` — Server Action 處理登入
+- [x] 登入後自動 redirect `/`
+- [x] `app/(auth)/logout/route.ts` — 登出 API
+- [x] 未登入訪問 `(dashboard)/*` 自動踢回登入(在 middleware 處理)
 
 ### 0.6 Layout 骨架
 - [ ] `app/(dashboard)/layout.tsx` — 側邊欄 + 頂部

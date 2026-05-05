@@ -26,9 +26,24 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // Touching auth.getUser() here refreshes the JWT cookie if needed.
-  // Auth-gated redirects are wired up in Phase 0.5.
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+  const isPublic = path === '/login' || path.startsWith('/login/') || path === '/logout'
+
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && path === '/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }
