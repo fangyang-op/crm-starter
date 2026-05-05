@@ -121,19 +121,19 @@
 - [x] 方案啟用/停用切換(form 內 `is_active` checkbox,列表用 Badge 顯示啟用中/已停用)
 
 ### 1.7 成交流程
-- [ ] 學生主頁「建立成交」按鈕
-- [ ] 表單:選方案 → 加購字數 → 加購學校 → 優惠 → 簽約日 → 合約編號
-- [ ] 自動計算 `final_amount`
-- [ ] 績效拆分(下面)
-- [ ] 寫入 `deals` + 自動產生 `word_quota_ledger`(initial + addon)
-- [ ] 自動觸發學生狀態 → `closed_won`
+- [x] 學生主頁「建立成交」按鈕(成交分頁,canCreate = manager+/admin 或 該學生顧問)
+- [x] 表單:選方案 → 加購字數 → 加購學校 → 優惠 → 簽約日 → 合約編號
+- [x] 自動計算 `final_amount`(UI 預覽,DB 端在 `create_deal` 函式以 `service_plans` + `addon_pricing` 重算為準)
+- [x] 績效拆分(下面 1.8)
+- [x] 寫入 `deals` + 自動產生 `word_quota_ledger`(initial + addon)
+- [x] 自動觸發學生狀態 → `closed_won`(若目前在 new_lead/contacted/consulting/qualified 之一)
 
 ### 1.8 績效拆分
-- [ ] 預設 100% 給 `frontend_consultant`
-- [ ] 「有轉介人」勾選 → 顯示拆分 UI(顧問 65 / 轉介 35,可改)
-- [ ] 多筆 split 可加入(顧問 + 轉介 + 主管獎金)
-- [ ] 約束:總和必須 = 100%
-- [ ] 寫入 `deal_commission_splits`
+- [x] 預設 100% 給 `frontend_consultant`(成交 dialog 預先選好)
+- [x] 「有轉介人」勾選 → 顯示拆分 UI(顧問 65 / 轉介 35,雙向滑動聯動)
+- [x] 多筆 split 可加入(主管獎金 row 可 +N 筆,選對象 + %)
+- [x] 約束:主拆分總和必須 = 100%(server `create_deal` 強制)
+- [x] 寫入 `deal_commission_splits`(amount = `final_amount * pct / 100`)
 
 ### 1.9 權限驗證(關鍵!)
 - [ ] 寫一個測試清單(見 [05-rls-policies.md](./05-rls-policies.md)):

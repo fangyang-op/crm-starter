@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import { StudentDeals } from '@/components/students/student-deals'
 import { StudentStatusChanger } from '@/components/students/student-status-changer'
 import { StudentTimeline } from '@/components/students/student-timeline'
 import { Button } from '@/components/ui/button'
@@ -284,7 +285,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <StudentTimeline studentId={student.id} />
         </TabsContent>
         <TabsContent value="deals">
-          <PhasePlaceholder phase="1.7-1.8" hint="顯示與建立成交,含績效拆分" />
+          <StudentDeals
+            studentId={student.id}
+            studentName={student.full_name}
+            defaultConsultantId={student.frontend_consultant_id}
+            canCreate={canChangeStatus}
+          />
         </TabsContent>
         <TabsContent value="schools">
           <PhasePlaceholder phase="2" hint="多版本選校表,鎖定後展開為申請項目" />
