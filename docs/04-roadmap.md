@@ -65,9 +65,9 @@
 - [x] 依角色顯示不同導覽項(consultant 看不到 `/workload` `/reports` `/settings`)
 
 ### 0.7 型別產生
-- [ ] 安裝 `supabase` CLI(`pnpm dlx supabase init` 後)
-- [ ] 執行 `supabase gen types typescript --project-id YOUR_ID > types/database.ts`
-- [ ] 在 `lib/supabase/client.ts` import `Database` 型別
+- [x] 安裝 `supabase` CLI(用 `npx` 即可,免全域裝)
+- [x] 執行 `supabase gen types typescript --project-id leslunfkwvywaxganxdr > types/database.ts` —— 已加成 `npm run gen:types`
+- [x] 在 `lib/supabase/client.ts` import `Database` 型別(0.2 已完成,0.7 改成從真 schema 衍生 `UserRole`)
 
 ### 0.8 部署到 Vercel
 - [ ] 推到 GitHub

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 
 import { Sidebar } from '@/components/layouts/sidebar'
 import { Topbar } from '@/components/layouts/topbar'
-import type { UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -17,13 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .from('profiles')
     .select('role, full_name, display_name, email, avatar_url')
     .eq('id', user.id)
-    .single<{
-      role: UserRole
-      full_name: string
-      display_name: string | null
-      email: string
-      avatar_url: string | null
-    }>()
+    .single()
 
   if (error || !profile) {
     // No profile row for this auth user — bootstrap is incomplete. Force re-login.

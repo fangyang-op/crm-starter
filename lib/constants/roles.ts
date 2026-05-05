@@ -1,4 +1,6 @@
-export type UserRole = 'consultant' | 'manager_frontend' | 'manager_backend' | 'admin'
+import type { Database } from '@/types/database'
+
+export type UserRole = Database['public']['Enums']['user_role']
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   consultant: '顧問',
