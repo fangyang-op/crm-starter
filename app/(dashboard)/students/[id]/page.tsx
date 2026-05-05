@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import { StudentTimeline } from '@/components/students/student-timeline'
 import { StatusBadge } from '@/components/shared/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -239,10 +240,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </TabsContent>
 
         <TabsContent value="timeline">
-          <PhasePlaceholder
-            phase="1.2"
-            hint="從 activity_log 讀取狀態變更、成交、文件編輯等時間軸"
-          />
+          <StudentTimeline studentId={student.id} />
         </TabsContent>
         <TabsContent value="deals">
           <PhasePlaceholder phase="1.7-1.8" hint="顯示與建立成交,含績效拆分" />

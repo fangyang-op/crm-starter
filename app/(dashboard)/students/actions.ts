@@ -50,6 +50,16 @@ export async function createStudent(input: StudentInput): Promise<ActionResult> 
     return { ok: false, error: `建立失敗:${error.message}` }
   }
 
+  // Log to activity_log so timeline shows the creation event. Failure is
+  // non-fatal — student exists; we just won't have a timeline entry.
+  await supabase.from('activity_log').insert({
+    student_id: data.id,
+    actor_id: user.id,
+    action: 'student_created',
+    entity_type: 'student',
+    entity_id: data.id,
+  })
+
   revalidatePath('/students')
   return { ok: true, id: data.id }
 }

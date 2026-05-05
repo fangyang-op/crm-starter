@@ -91,12 +91,12 @@
 - [x] zod validators(`lib/validators/student.ts`)
 
 ### 1.2 學生 360° 主頁(Tabs)
-- [ ] **概覽**:基本資料、狀態、顧問、來源
-- [ ] **時間軸**:讀 `activity_log`(空表先顯示空狀態)
-- [ ] **成交**:Phase 1 核心(下面)
-- [ ] **選校表**:Phase 2 預留 placeholder
-- [ ] **文件**:Phase 3 預留
-- [ ] **申請**:Phase 4 預留
+- [x] **概覽**:基本資料、狀態、顧問、來源
+- [x] **時間軸**:讀 `activity_log`,空時 EmptyState;`createStudent` 已寫一筆 `student_created` 事件
+- [x] **成交**:placeholder(1.7-1.8 將實作建立流程)
+- [x] **選校表**:Phase 2 預留 placeholder
+- [x] **文件**:Phase 3 預留
+- [x] **申請**:Phase 4 預留
 
 ### 1.3 狀態流轉
 - [ ] 狀態變更下拉選單(僅顯示合法的 next state)
