@@ -83,11 +83,12 @@
 > 目的:前端顧問可以新增學生、看自己的學生、改狀態、建立成交。
 
 ### 1.1 學生 CRUD
-- [ ] `app/(dashboard)/students/page.tsx` — 列表(分頁、搜尋、狀態篩選)
-- [ ] `app/(dashboard)/students/new/page.tsx` — 新增表單
-- [ ] `app/(dashboard)/students/[id]/page.tsx` — 學生 360° 主頁(分頁籤)
-- [ ] `app/(dashboard)/students/actions.ts` — Server Actions(create / update / softDelete)
-- [ ] zod validators(`lib/validators/student.ts`)
+- [x] `app/(dashboard)/students/page.tsx` — 列表(分頁、搜尋、狀態篩選)
+- [x] `app/(dashboard)/students/new/page.tsx` — 新增表單
+- [x] `app/(dashboard)/students/[id]/page.tsx` — 學生 360° 主頁(分頁籤,概覽 tab 完成,其餘 placeholder)
+- [x] `app/(dashboard)/students/[id]/edit/page.tsx` — 編輯表單(共用 StudentForm)
+- [x] `app/(dashboard)/students/actions.ts` — Server Actions(create / update / softDelete)
+- [x] zod validators(`lib/validators/student.ts`)
 
 ### 1.2 學生 360° 主頁(Tabs)
 - [ ] **概覽**:基本資料、狀態、顧問、來源

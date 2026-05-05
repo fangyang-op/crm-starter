@@ -1,0 +1,97 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+import {
+  createStudentSchema,
+  toDbPayload,
+  updateStudentSchema,
+  type StudentInput,
+} from '@/lib/validators/student'
+import { createClient } from '@/lib/supabase/server'
+
+export type ActionResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
+
+function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  for (const issue of err.issues) {
+    const path = issue.path.join('.')
+    if (!result[path]) result[path] = []
+    result[path].push(issue.message)
+  }
+  return result
+}
+
+export async function createStudent(input: StudentInput): Promise<ActionResult> {
+  const parsed = createStudentSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
+  }
+
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: '未登入' }
+
+  const { data, error } = await supabase
+    .from('students')
+    .insert({
+      ...toDbPayload(parsed.data),
+      // RLS WITH CHECK: created_by must equal auth.uid()
+      created_by: user.id,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    return { ok: false, error: `建立失敗:${error.message}` }
+  }
+
+  revalidatePath('/students')
+  return { ok: true, id: data.id }
+}
+
+export async function updateStudent(id: string, input: StudentInput): Promise<ActionResult> {
+  if (!id) return { ok: false, error: '缺少學生 id' }
+
+  const parsed = updateStudentSchema.safeParse({ id, ...input })
+  if (!parsed.success) {
+    return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
+  }
+
+  const supabase = createClient()
+  const { id: parsedId, ...patch } = parsed.data
+  const { error } = await supabase
+    .from('students')
+    .update(toDbPayload(patch as StudentInput))
+    .eq('id', parsedId)
+    .is('deleted_at', null)
+
+  if (error) {
+    return { ok: false, error: `更新失敗:${error.message}` }
+  }
+
+  revalidatePath('/students')
+  revalidatePath(`/students/${parsedId}`)
+  return { ok: true, id: parsedId }
+}
+
+export async function softDeleteStudent(id: string): Promise<ActionResult> {
+  if (!id) return { ok: false, error: '缺少學生 id' }
+
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('students')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    return { ok: false, error: `刪除失敗:${error.message}` }
+  }
+
+  revalidatePath('/students')
+  return { ok: true, id }
+}
