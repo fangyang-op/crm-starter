@@ -149,6 +149,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       </header>
 
+      {student.status === 'closed_won' &&
+      !student.backend_consultant_id &&
+      isManagerOrAdmin(role) ? (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          這位學生已成交,但尚未派遣後端顧問。請點{' '}
+          <Link href={`/students/${student.id}/edit`} className="font-medium underline">
+            編輯
+          </Link>{' '}
+          指派後端顧問。
+        </div>
+      ) : null}
+
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">概覽</TabsTrigger>

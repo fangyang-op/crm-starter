@@ -76,14 +76,21 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
 
   const supabase = createClient()
   const { id: parsedId, ...patch } = parsed.data
-  const { error } = await supabase
-    .from('students')
-    .update(toDbPayload(patch as StudentInput))
-    .eq('id', parsedId)
-    .is('deleted_at', null)
+
+  // SECURITY DEFINER (migration 0007) — direct UPDATE under RLS WITH CHECK
+  // misbehaves for admin (same quirk as soft delete). The function also writes
+  // consultant_handovers + activity_log entries when frontend / backend
+  // consultant ids change.
+  const { error } = await supabase.rpc(
+    'update_student' as never,
+    {
+      p_id: parsedId,
+      p_data: toDbPayload(patch as StudentInput),
+    } as never,
+  )
 
   if (error) {
-    return { ok: false, error: `更新失敗:${error.message}` }
+    return { ok: false, error: `更新失敗:${(error as { message: string }).message}` }
   }
 
   revalidatePath('/students')

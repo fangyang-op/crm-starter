@@ -71,6 +71,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
     lead_source_referrer_id: student.lead_source_referrer_id,
     lead_source_note: student.lead_source_note,
     frontend_consultant_id: student.frontend_consultant_id,
+    backend_consultant_id: student.backend_consultant_id,
     notes: student.notes,
     tags: student.tags,
   }

@@ -107,6 +107,7 @@ function defaultValuesFor(
     lead_source_referrer_id: initial?.lead_source_referrer_id ?? null,
     lead_source_note: initial?.lead_source_note ?? null,
     frontend_consultant_id: initial?.frontend_consultant_id ?? fallbackConsultantId,
+    backend_consultant_id: initial?.backend_consultant_id ?? null,
     notes: initial?.notes ?? null,
     tags: initial?.tags ?? null,
   }
@@ -558,34 +559,64 @@ export function StudentForm({
               )}
             />
             {canPickConsultant ? (
-              <FormField
-                control={form.control}
-                name="frontend_consultant_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>前端顧問</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
-                      value={field.value ?? '__none__'}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="選擇顧問" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">尚未指派</SelectItem>
-                        {consultantOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="frontend_consultant_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>前端顧問</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                        value={field.value ?? '__none__'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇顧問" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">尚未指派</SelectItem>
+                          {consultantOptions.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="backend_consultant_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>後端顧問</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                        value={field.value ?? '__none__'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇顧問" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="__none__">尚未指派</SelectItem>
+                          {consultantOptions.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground">前端顧問預設指派為你本人。</p>
             )}

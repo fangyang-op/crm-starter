@@ -66,12 +66,16 @@ export function formatActivity(activity: ActivityRow, actorName?: string): Activ
             : (activity.description ?? `${actor} 變更了狀態`),
       }
     }
-    case 'consultant_assigned':
+    case 'consultant_assigned': {
+      const role = typeof payload.role === 'string' ? payload.role : null
+      const roleLabel = role === 'frontend' ? '前端顧問' : role === 'backend' ? '後端顧問' : '顧問'
+      const isInitial = payload.from === null
       return {
         icon: UserPlus,
         iconClass: 'text-violet-600',
-        description: activity.description ?? `${actor} 指派了顧問`,
+        description: isInitial ? `${actor} 指派了${roleLabel}` : `${actor} 變更了${roleLabel}`,
       }
+    }
     case 'deal_created':
       return {
         icon: Handshake,

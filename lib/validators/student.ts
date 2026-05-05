@@ -52,6 +52,7 @@ export const studentBaseSchema = z.object({
   lead_source_note: optionalString(500),
 
   frontend_consultant_id: z.string().uuid('UUID 格式錯誤').nullable().optional(),
+  backend_consultant_id: z.string().uuid('UUID 格式錯誤').nullable().optional(),
 
   notes: optionalString(2000),
   tags: z.array(z.string().max(50)).nullable().optional(),

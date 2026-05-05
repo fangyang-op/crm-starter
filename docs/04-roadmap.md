@@ -111,10 +111,10 @@
 - [x] `app/(dashboard)/settings/referrers/` — 外部轉介人管理(`/settings` 已開放給 manager+;CUD 走 `create_referrer` / `update_referrer` SECURITY DEFINER 函式 / migration 0006)
 
 ### 1.5 顧問派發 / 交接
-- [ ] 新增學生時 `frontend_consultant_id` 預設為當前使用者
-- [ ] 主管可手動指定/改派
-- [ ] 狀態變為 `closed_won` 時 prompt 派遣後端顧問
-- [ ] 寫入 `consultant_handovers`
+- [x] 新增學生時 `frontend_consultant_id` 預設為當前使用者(於 1.1)
+- [x] 主管可手動指定/改派(form 加上 `backend_consultant_id` 欄位 manager+ 可見)
+- [x] 狀態變為 `closed_won` 時 prompt 派遣後端顧問(detail page banner 取代強制 prompt — 簡化 UX)
+- [x] 寫入 `consultant_handovers`(在 `update_student` SD 函式內偵測 FE/BE 差異自動寫,同時寫一筆 `consultant_assigned` activity_log)
 
 ### 1.6 方案管理
 - [ ] `app/(dashboard)/settings/plans/` — 方案 CRUD(僅 admin)
