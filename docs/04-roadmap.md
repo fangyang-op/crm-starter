@@ -40,10 +40,10 @@
 - [x] 在根目錄 `middleware.ts` 整合上面 middleware
 
 ### 0.3 執行第一份 Migration
-- [ ] 在 Supabase Dashboard → SQL Editor
-- [ ] 貼上 `supabase/migrations/0001_init.sql` 並執行
-- [ ] 驗證所有表都建立成功
-- [ ] 建立第一個 admin 使用者(在 `auth.users` 註冊 → 手動 update `profiles.role = 'admin'`)
+- [x] 在 Supabase Dashboard → SQL Editor
+- [x] 貼上 `supabase/migrations/0001_init.sql` 並執行
+- [x] 驗證所有表都建立成功
+- [x] 建立第一個 admin 使用者(在 `auth.users` 註冊 → 手動 INSERT `profiles` 一筆 `role = 'admin'`)
 
 ### 0.4 shadcn/ui 與設計系統
 - [ ] 執行 `pnpm dlx shadcn@latest init`
