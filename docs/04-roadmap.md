@@ -46,10 +46,10 @@
 - [x] 建立第一個 admin 使用者(在 `auth.users` 註冊 → 手動 INSERT `profiles` 一筆 `role = 'admin'`)
 
 ### 0.4 shadcn/ui 與設計系統
-- [ ] 執行 `pnpm dlx shadcn@latest init`
-- [ ] 安裝必要元件:`button` / `input` / `label` / `dialog` / `dropdown-menu` / `select` / `table` / `toast` / `card` / `badge` / `avatar` / `tabs` / `form`
-- [ ] 設定 Tailwind 主色(見 [07-design-system.md](./07-design-system.md))
-- [ ] 建立 `lib/utils.ts`(cn 函式 helper)
+- [x] 執行 `npx shadcn@2.3.0 init`(2.x 才相容 Tailwind v3,latest 4.x 強制 Tailwind v4)
+- [x] 安裝必要元件(依 [07-design-system.md](./07-design-system.md) §5.1 全裝):`button` `input` `label` `textarea` `select` `checkbox` `radio-group` `dialog` `alert-dialog` `sheet` `popover` `tooltip` `dropdown-menu` `form` `table` `tabs` `card` `badge` `avatar` `separator` `sonner`(取代已 deprecated 的 `toast`)`command` `calendar` `scroll-area` `accordion`
+- [x] 設定 Tailwind 主色(見 [07-design-system.md](./07-design-system.md))+ 補上 `success` / `warning`
+- [x] 建立 `lib/utils.ts`(cn 函式 helper)
 
 ### 0.5 Auth 流程
 - [ ] `app/(auth)/login/page.tsx` — 登入頁(email + password)
