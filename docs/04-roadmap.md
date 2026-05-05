@@ -99,10 +99,10 @@
 - [x] **申請**:Phase 4 預留
 
 ### 1.3 狀態流轉
-- [ ] 狀態變更下拉選單(僅顯示合法的 next state)
-- [ ] 變更時 prompt 填寫備註
-- [ ] 觸發器自動寫 `student_status_history` 與 `activity_log`
-- [ ] UI 顯示狀態徽章(每狀態不同顏色)
+- [x] 狀態變更下拉選單(僅顯示合法的 next state,合法 transitions 集中在 `lib/constants/student-status-transitions.ts`)
+- [x] 變更時 prompt 填寫備註(寫入 `student_status_history.note`)
+- [x] 觸發器自動寫 `student_status_history`;`activity_log` 由 SECURITY DEFINER 函式 `change_student_status` 寫入(同 0004 因 RLS quirk 走 RPC)
+- [x] UI 顯示狀態徽章(已於 1.1 完成)+ 點擊 Dialog 切換狀態
 
 ### 1.4 名單來源 + 轉介人
 - [ ] 新增/編輯學生時選擇 `lead_source_type`

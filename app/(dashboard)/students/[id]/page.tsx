@@ -4,8 +4,8 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import { StudentStatusChanger } from '@/components/students/student-status-changer'
 import { StudentTimeline } from '@/components/students/student-timeline'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -89,6 +89,10 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   const role = me.role as UserRole
   const canDelete = isManagerOrAdmin(role)
+  const canChangeStatus =
+    isManagerOrAdmin(role) ||
+    student.frontend_consultant_id === user.id ||
+    student.backend_consultant_id === user.id
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
@@ -109,7 +113,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             {student.english_name ? (
               <span className="text-muted-foreground">{student.english_name}</span>
             ) : null}
-            <StatusBadge status={student.status} />
+            <StudentStatusChanger
+              studentId={student.id}
+              currentStatus={student.status}
+              canEdit={canChangeStatus}
+            />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             建立於{' '}
