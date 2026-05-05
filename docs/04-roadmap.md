@@ -59,10 +59,10 @@
 - [x] 未登入訪問 `(dashboard)/*` 自動踢回登入(在 middleware 處理)
 
 ### 0.6 Layout 骨架
-- [ ] `app/(dashboard)/layout.tsx` — 側邊欄 + 頂部
-- [ ] `components/layouts/sidebar.tsx` — 主導覽
-- [ ] `components/layouts/topbar.tsx` — 使用者選單
-- [ ] 依角色顯示不同導覽項(consultant 看不到 `/reports`)
+- [x] `app/(dashboard)/layout.tsx` — 側邊欄 + 頂部(server,fetch profile;`/` 搬進此 group)
+- [x] `components/layouts/sidebar.tsx` — 主導覽(lucide icons,active 高亮)
+- [x] `components/layouts/topbar.tsx` — 使用者選單(Avatar + DropdownMenu + 登出)
+- [x] 依角色顯示不同導覽項(consultant 看不到 `/workload` `/reports` `/settings`)
 
 ### 0.7 型別產生
 - [ ] 安裝 `supabase` CLI(`pnpm dlx supabase init` 後)
