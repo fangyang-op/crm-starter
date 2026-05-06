@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { CredentialsCard, type CredentialItem } from '@/components/students/credentials-card'
+import { DeferCard, type DeferRecord } from '@/components/students/defer-card'
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
 import { StudentApplications } from '@/components/students/student-applications'
 import { StudentDeals } from '@/components/students/student-deals'
@@ -152,6 +153,16 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const visaCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'visa')
   const housingCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'housing')
 
+  // Defer history (latest first)
+  const { data: defersRaw } = await supabase
+    .from('student_defers' as never)
+    .select(
+      'id, original_enrollment_date, new_enrollment_date, reason, agreement_file_path, created_at',
+    )
+    .eq('student_id' as never, params.id as never)
+    .order('created_at' as never, { ascending: false })
+  const deferRecords = (defersRaw ?? []) as unknown as DeferRecord[]
+
   // student_statuses for the changer dialog (active only) + the current status row.
   const { data: statusesRaw } = await supabase
     .from('student_statuses' as never)
@@ -252,6 +263,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             studentId={student.id}
             studentName={student.full_name}
             canAddBonus={isManagerOrAdmin(role) || student.frontend_consultant_id === user.id}
+          />
+
+          {/* Defer 延後入學 (spec § 2.3), eligible when status is decision_making/pre_departure/enrolled */}
+          <DeferCard
+            studentId={student.id}
+            records={deferRecords}
+            eligible={
+              currentStatus?.code === 'decision_making' ||
+              currentStatus?.code === 'pre_departure' ||
+              currentStatus?.code === 'enrolled'
+            }
+            canEdit={canChangeStatus}
           />
 
           {/* 入學準備 — 簽證 / 住宿帳密 (spec § 2.10), gated by enrolled */}
