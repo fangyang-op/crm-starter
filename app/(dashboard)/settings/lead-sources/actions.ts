@@ -11,16 +11,25 @@ export type LeadSourceActionResult =
 
 export type LeadSourceSimpleResult = { ok: true } | { ok: false; error: string }
 
-const leadSourceSchema = z.object({
-  code: z
-    .string()
-    .min(1, '代號必填')
-    .max(40)
-    .regex(/^[a-z][a-z0-9_]*$/i, '代號只能用英數與底線,且需以字母開頭'),
-  label_zh: z.string().min(1, '中文名稱必填').max(100),
-  default_referrer_id: z.string().uuid().nullable(),
-  sort_order: z.number().int().min(0).max(99999),
-})
+export const LEAD_SOURCE_DETAIL_FIELD_VALUES = ['none', 'internal_user', 'referrer'] as const
+export type LeadSourceDetailField = (typeof LEAD_SOURCE_DETAIL_FIELD_VALUES)[number]
+
+const leadSourceSchema = z
+  .object({
+    code: z
+      .string()
+      .min(1, '代號必填')
+      .max(40)
+      .regex(/^[a-z][a-z0-9_]*$/i, '代號只能用英數與底線,且需以字母開頭'),
+    label_zh: z.string().min(1, '中文名稱必填').max(100),
+    default_referrer_id: z.string().uuid().nullable(),
+    sort_order: z.number().int().min(0).max(99999),
+    detail_field: z.enum(LEAD_SOURCE_DETAIL_FIELD_VALUES),
+  })
+  .refine((d) => d.detail_field === 'referrer' || d.default_referrer_id === null, {
+    path: ['default_referrer_id'],
+    message: '只有「轉介人」類型才能設定預設轉介人',
+  })
 
 export type LeadSourceInput = z.infer<typeof leadSourceSchema>
 
@@ -48,6 +57,7 @@ export async function createLeadSource(input: LeadSourceInput): Promise<LeadSour
       p_label_zh: parsed.data.label_zh,
       p_default_referrer_id: parsed.data.default_referrer_id,
       p_sort_order: parsed.data.sort_order,
+      p_detail_field: parsed.data.detail_field,
     } as never,
   )
 
@@ -80,6 +90,7 @@ export async function updateLeadSource(
       p_default_referrer_id: parsed.data.default_referrer_id,
       p_sort_order: parsed.data.sort_order,
       p_is_active: input.is_active,
+      p_detail_field: parsed.data.detail_field,
     } as never,
   )
 
@@ -102,7 +113,7 @@ export async function setLeadSourceActive(
   // full UPDATE, so we read the row first.
   const { data: currentRaw } = await supabase
     .from('lead_sources' as never)
-    .select('code, label_zh, default_referrer_id, sort_order')
+    .select('code, label_zh, default_referrer_id, sort_order, detail_field')
     .eq('id' as never, id as never)
     .maybeSingle()
   const current = currentRaw as unknown as {
@@ -110,6 +121,7 @@ export async function setLeadSourceActive(
     label_zh: string
     default_referrer_id: string | null
     sort_order: number
+    detail_field: LeadSourceDetailField
   } | null
   if (!current) return { ok: false, error: '找不到名單來源' }
 
@@ -122,6 +134,7 @@ export async function setLeadSourceActive(
       p_default_referrer_id: current.default_referrer_id,
       p_sort_order: current.sort_order,
       p_is_active: isActive,
+      p_detail_field: current.detail_field,
     } as never,
   )
   if (error) {

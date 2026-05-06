@@ -43,6 +43,8 @@ export type LeadSourceOption = {
   id: string
   code: string
   label_zh: string
+  detail_field: 'none' | 'internal_user' | 'referrer'
+  default_referrer_id: string | null
 }
 
 export type StudentFormProps = {
@@ -139,16 +141,22 @@ export function StudentForm({
   })
 
   const leadSourceId = form.watch('lead_source_id')
-  const currentCode = leadSourceOptions.find((o) => o.id === leadSourceId)?.code
-  const showInternalUserField =
-    currentCode === 'marketing_dept' || currentCode === 'consultant_referral'
-  const showReferrerField =
-    currentCode === 'external_referrer' || currentCode === 'brand_introduction'
+  const currentSource = leadSourceOptions.find((o) => o.id === leadSourceId)
+  const currentCode = currentSource?.code
+  const detailField = currentSource?.detail_field ?? 'none'
+  const showInternalUserField = detailField === 'internal_user'
+  const showReferrerField = detailField === 'referrer'
 
-  // Clear the irrelevant field when source switches.
+  // Clear the irrelevant field when source switches; if the new source has
+  // a default referrer (only meaningful for type='referrer'), prefill it
+  // unless the form already has a non-null value.
   useEffect(() => {
     if (!showInternalUserField) form.setValue('lead_source_user_id', null)
-    if (!showReferrerField) form.setValue('lead_source_referrer_id', null)
+    if (!showReferrerField) {
+      form.setValue('lead_source_referrer_id', null)
+    } else if (currentSource?.default_referrer_id && !form.getValues('lead_source_referrer_id')) {
+      form.setValue('lead_source_referrer_id', currentSource.default_referrer_id)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadSourceId])
 

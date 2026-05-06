@@ -3,7 +3,10 @@ import { redirect } from 'next/navigation'
 
 import { ArrowLeft, Plus } from 'lucide-react'
 
-import { LeadSourceFormDialog } from '@/components/settings/lead-source-form-dialog'
+import {
+  LeadSourceFormDialog,
+  type LeadSourceInitial,
+} from '@/components/settings/lead-source-form-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,20 +38,13 @@ export default async function LeadSourcesPage() {
   const [{ data: sourcesRaw, error }, { data: referrers }] = await Promise.all([
     supabase
       .from('lead_sources' as never)
-      .select('id, code, label_zh, default_referrer_id, sort_order, is_active')
+      .select('id, code, label_zh, default_referrer_id, sort_order, is_active, detail_field')
       .order('sort_order' as never, { ascending: true })
       .order('label_zh' as never, { ascending: true }),
     supabase.from('referrers').select('id, name').eq('is_active', true).order('name'),
   ])
 
-  const sources = (sourcesRaw ?? []) as unknown as Array<{
-    id: string
-    code: string
-    label_zh: string
-    default_referrer_id: string | null
-    sort_order: number
-    is_active: boolean
-  }>
+  const sources = (sourcesRaw ?? []) as unknown as Array<LeadSourceInitial>
 
   const referrerOptions = (referrers ?? []).map((r) => ({ id: r.id, name: r.name }))
   const referrerMap = new Map(referrerOptions.map((r) => [r.id, r.name]))
@@ -96,6 +92,7 @@ export default async function LeadSourcesPage() {
                 <TableHead className="w-[60px]">順序</TableHead>
                 <TableHead>中文名稱</TableHead>
                 <TableHead>代號</TableHead>
+                <TableHead>詳情欄位</TableHead>
                 <TableHead>預設轉介人</TableHead>
                 <TableHead className="w-[90px]">狀態</TableHead>
                 <TableHead className="w-[80px] text-right">操作</TableHead>
@@ -110,6 +107,13 @@ export default async function LeadSourcesPage() {
                   <TableCell className="font-medium">{s.label_zh}</TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {s.code}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {s.detail_field === 'referrer'
+                      ? '轉介人'
+                      : s.detail_field === 'internal_user'
+                        ? '自己人'
+                        : '無'}
                   </TableCell>
                   <TableCell className="text-sm">
                     {s.default_referrer_id ? (referrerMap.get(s.default_referrer_id) ?? '—') : '—'}
@@ -126,14 +130,7 @@ export default async function LeadSourcesPage() {
                   <TableCell className="text-right">
                     <LeadSourceFormDialog
                       mode="edit"
-                      initial={{
-                        id: s.id,
-                        code: s.code,
-                        label_zh: s.label_zh,
-                        default_referrer_id: s.default_referrer_id,
-                        sort_order: s.sort_order,
-                        is_active: s.is_active,
-                      }}
+                      initial={s}
                       referrers={referrerOptions}
                       trigger={
                         <Button variant="ghost" size="sm">

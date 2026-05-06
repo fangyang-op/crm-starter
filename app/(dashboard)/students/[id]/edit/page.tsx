@@ -53,7 +53,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
 
   const { data: leadSources } = await supabase
     .from('lead_sources' as never)
-    .select('id, code, label_zh')
+    .select('id, code, label_zh, detail_field, default_referrer_id')
     .eq('is_active' as never, true as never)
     .order('sort_order' as never, { ascending: true })
 
@@ -62,11 +62,15 @@ export default async function EditStudentPage({ params }: { params: { id: string
       id: string
       code: string
       label_zh: string
+      detail_field: 'none' | 'internal_user' | 'referrer'
+      default_referrer_id: string | null
     }>
   ).map((l) => ({
     id: l.id,
     code: l.code,
     label_zh: l.label_zh,
+    detail_field: l.detail_field,
+    default_referrer_id: l.default_referrer_id,
   }))
 
   const initialValues: Partial<StudentInput> = {

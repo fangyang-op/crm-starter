@@ -26,7 +26,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { createLeadSource, updateLeadSource } from '@/app/(dashboard)/settings/lead-sources/actions'
+import {
+  createLeadSource,
+  updateLeadSource,
+  type LeadSourceDetailField,
+} from '@/app/(dashboard)/settings/lead-sources/actions'
 
 export type LeadSourceInitial = {
   id: string
@@ -35,6 +39,13 @@ export type LeadSourceInitial = {
   default_referrer_id: string | null
   sort_order: number
   is_active: boolean
+  detail_field: LeadSourceDetailField
+}
+
+const DETAIL_FIELD_LABELS: Record<LeadSourceDetailField, string> = {
+  none: '無(只有備註欄)',
+  internal_user: '自己人(從同事下拉選)',
+  referrer: '轉介人(從轉介人下拉選,可設預設值)',
 }
 
 type ReferrerOption = { id: string; name: string }
@@ -60,6 +71,9 @@ export function LeadSourceFormDialog({ mode, initial, referrers, trigger }: Prop
   )
   const [sortOrder, setSortOrder] = useState<string>(String(initial?.sort_order ?? 0))
   const [isActive, setIsActive] = useState(initial?.is_active ?? true)
+  const [detailField, setDetailField] = useState<LeadSourceDetailField>(
+    initial?.detail_field ?? 'none',
+  )
 
   const reset = () => {
     setCode(initial?.code ?? '')
@@ -67,14 +81,19 @@ export function LeadSourceFormDialog({ mode, initial, referrers, trigger }: Prop
     setDefaultReferrerId(initial?.default_referrer_id ?? NONE)
     setSortOrder(String(initial?.sort_order ?? 0))
     setIsActive(initial?.is_active ?? true)
+    setDetailField(initial?.detail_field ?? 'none')
   }
 
   const submit = () => {
+    // Default referrer only meaningful for type='referrer'.
+    const effectiveReferrerId =
+      detailField === 'referrer' && defaultReferrerId !== NONE ? defaultReferrerId : null
     const input = {
       code: code.trim(),
       label_zh: labelZh.trim(),
-      default_referrer_id: defaultReferrerId === NONE ? null : defaultReferrerId,
+      default_referrer_id: effectiveReferrerId,
       sort_order: Number(sortOrder || 0),
+      detail_field: detailField,
     }
 
     startTransition(async () => {
@@ -134,11 +153,33 @@ export function LeadSourceFormDialog({ mode, initial, referrers, trigger }: Prop
             />
           </div>
           <div className="space-y-1.5">
-            <Label>預設轉介人</Label>
+            <Label>學生表單顯示的詳情欄位</Label>
+            <Select
+              value={detailField}
+              onValueChange={(v) => setDetailField(v as LeadSourceDetailField)}
+              disabled={pending}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{DETAIL_FIELD_LABELS.none}</SelectItem>
+                <SelectItem value="internal_user">{DETAIL_FIELD_LABELS.internal_user}</SelectItem>
+                <SelectItem value="referrer">{DETAIL_FIELD_LABELS.referrer}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              選了「轉介人」才能設定下面的「預設轉介人」,並且學生表單會顯示轉介人下拉。
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className={detailField === 'referrer' ? '' : 'text-muted-foreground'}>
+              預設轉介人
+            </Label>
             <Select
               value={defaultReferrerId}
               onValueChange={setDefaultReferrerId}
-              disabled={pending}
+              disabled={pending || detailField !== 'referrer'}
             >
               <SelectTrigger>
                 <SelectValue placeholder="未指定" />
@@ -152,6 +193,9 @@ export function LeadSourceFormDialog({ mode, initial, referrers, trigger }: Prop
                 ))}
               </SelectContent>
             </Select>
+            {detailField !== 'referrer' ? (
+              <p className="text-xs text-muted-foreground">當前類型不適用,請改選「轉介人」類型。</p>
+            ) : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sort-order">顯示順序</Label>
