@@ -60,6 +60,18 @@ export type ApplicationRow = {
   tuition_amount: number | null
   tuition_currency: string
   commission: CommissionRow | null
+  offer_letter_path: string | null
+  rejection_letter_path: string | null
+  scholarship: ScholarshipRow | null
+}
+
+export type ScholarshipRow = {
+  id: string
+  has_scholarship: boolean
+  amount_twd: number | null
+  scholarship_name: string | null
+  award_letter_path: string | null
+  notes: string | null
 }
 
 type Props = {

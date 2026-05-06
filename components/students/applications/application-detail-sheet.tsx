@@ -40,12 +40,17 @@ import {
 } from '@/lib/constants/commission'
 
 import {
+  clearDecisionFile,
+  getDecisionFileSignedUrl,
+  getScholarshipFileSignedUrl,
   revealApplicationPortalPassword,
   updateApplicationMeta,
   updateApplicationPortal,
   updateApplicationStatus,
   updateCommission,
   updateTuition,
+  uploadDecisionFile,
+  upsertScholarship,
 } from '@/app/(dashboard)/students/[id]/applications/actions'
 
 import type { ApplicationRow } from './applications-view'
@@ -90,7 +95,11 @@ export function ApplicationDetailSheet({
 
         <div className="space-y-6 py-4">
           <StatusBlock studentId={studentId} app={application} canEdit={canEdit} />
+          {(application.status === 'admitted' || application.status === 'rejected') && canEdit ? (
+            <DecisionFileBlock studentId={studentId} app={application} />
+          ) : null}
           <MetaBlock studentId={studentId} app={application} canEdit={canEdit} />
+          {canEdit ? <ScholarshipBlock studentId={studentId} app={application} /> : null}
           <PortalBlock studentId={studentId} app={application} canEdit={canEdit} />
           {isManager ? <TuitionBlock studentId={studentId} app={application} /> : null}
           {isManager && application.school_is_partner && application.commission ? (
@@ -882,6 +891,272 @@ function CommissionBlock({ studentId, app }: { studentId: string; app: Applicati
 
       <Button onClick={submit} disabled={pending} className="w-full" size="sm">
         {pending ? '儲存中…' : '儲存佣金紀錄'}
+      </Button>
+    </section>
+  )
+}
+
+// ============================================================================
+// 5.1 — Offer / Rejection PDF upload (only when status admitted/rejected)
+// ============================================================================
+function DecisionFileBlock({ studentId, app }: { studentId: string; app: ApplicationRow }) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [downloading, startDownload] = useTransition()
+
+  const kind: 'offer' | 'rejection' = app.status === 'admitted' ? 'offer' : 'rejection'
+  const path = kind === 'offer' ? app.offer_letter_path : app.rejection_letter_path
+  const labelKind = kind === 'offer' ? '錄取通知書' : '拒絕信'
+
+  const onPick = (file: File | null) => {
+    if (!file) return
+    if (file.type !== 'application/pdf') {
+      toast.error('檔案必須是 PDF 格式')
+      return
+    }
+    const fd = new FormData()
+    fd.set('application_id', app.id)
+    fd.set('kind', kind)
+    fd.set('file', file)
+    startTransition(async () => {
+      const r = await uploadDecisionFile(studentId, fd)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      toast.success(`已上傳${labelKind}`)
+      router.refresh()
+    })
+  }
+
+  const handleDownload = () => {
+    if (!path) return
+    startDownload(async () => {
+      const r = await getDecisionFileSignedUrl(path)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      window.open(r.url, '_blank', 'noopener,noreferrer')
+    })
+  }
+
+  const handleClear = () => {
+    if (!path) return
+    if (!window.confirm(`確定移除${labelKind}?`)) return
+    startTransition(async () => {
+      const r = await clearDecisionFile(studentId, app.id, kind)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      toast.success(`已移除${labelKind}`)
+      router.refresh()
+    })
+  }
+
+  return (
+    <section className="space-y-2 rounded-md border p-3">
+      <p className="text-sm font-medium">
+        {labelKind} <span className="text-xs text-muted-foreground">(僅 PDF,最大 10MB)</span>
+      </p>
+      {path ? (
+        <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
+          <span className="flex-1 truncate font-mono">{path.split('/').pop()}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            {downloading ? '產生連結…' : '下載'}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={pending}>
+            移除
+          </Button>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">尚未上傳。</p>
+      )}
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        disabled={pending}
+        className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-accent"
+      />
+    </section>
+  )
+}
+
+// ============================================================================
+// 5.2 — Per-application scholarship card
+// ============================================================================
+function ScholarshipBlock({ studentId, app }: { studentId: string; app: ApplicationRow }) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [downloading, startDownload] = useTransition()
+  const s = app.scholarship
+
+  const [has, setHas] = useState(s?.has_scholarship ?? false)
+  const [amount, setAmount] = useState(
+    s?.amount_twd !== null && s?.amount_twd !== undefined ? String(s.amount_twd) : '',
+  )
+  const [name, setName] = useState(s?.scholarship_name ?? '')
+  const [notes, setNotes] = useState(s?.notes ?? '')
+  const [file, setFile] = useState<File | null>(null)
+  const [removeAward, setRemoveAward] = useState(false)
+
+  useEffect(() => {
+    setHas(s?.has_scholarship ?? false)
+    setAmount(s?.amount_twd !== null && s?.amount_twd !== undefined ? String(s.amount_twd) : '')
+    setName(s?.scholarship_name ?? '')
+    setNotes(s?.notes ?? '')
+    setFile(null)
+    setRemoveAward(false)
+  }, [s?.id, s?.has_scholarship, s?.amount_twd, s?.scholarship_name, s?.notes])
+
+  const submit = () => {
+    if (file && file.type !== 'application/pdf') {
+      toast.error('獎學金通知信必須是 PDF 格式')
+      return
+    }
+    const fd = new FormData()
+    fd.set('application_id', app.id)
+    fd.set('has_scholarship', has ? 'true' : 'false')
+    fd.set('amount_twd', amount)
+    fd.set('scholarship_name', name)
+    fd.set('notes', notes)
+    if (file) fd.set('file', file)
+    if (removeAward) fd.set('remove_award', 'true')
+    startTransition(async () => {
+      const r = await upsertScholarship(studentId, fd)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      toast.success('已儲存獎學金紀錄')
+      router.refresh()
+    })
+  }
+
+  const downloadAward = () => {
+    if (!s?.award_letter_path) return
+    startDownload(async () => {
+      const r = await getScholarshipFileSignedUrl(s.award_letter_path!)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      window.open(r.url, '_blank', 'noopener,noreferrer')
+    })
+  }
+
+  return (
+    <section className="space-y-3 rounded-md border p-3">
+      <p className="text-sm font-medium">獎學金</p>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox checked={has} onCheckedChange={(v) => setHas(v === true)} disabled={pending} />
+        該校有獲得獎學金
+      </label>
+      {has ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="schol-name" className="text-xs">
+                獎學金名稱(選填)
+              </Label>
+              <Input
+                id="schol-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例:Dean's Fellowship"
+                disabled={pending}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="schol-amount" className="text-xs">
+                金額 (NTD)
+              </Label>
+              <NumberInput
+                id="schol-amount"
+                decimal={false}
+                value={amount}
+                onValueChange={setAmount}
+                placeholder="例:200000"
+                disabled={pending}
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">獎學金通知信 (PDF only)</Label>
+            {s?.award_letter_path && !removeAward && !file ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
+                <span className="flex-1 truncate font-mono">
+                  {s.award_letter_path.split('/').pop()}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadAward}
+                  disabled={downloading}
+                >
+                  {downloading ? '…' : '下載'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRemoveAward(true)}
+                  disabled={pending}
+                >
+                  移除
+                </Button>
+              </div>
+            ) : null}
+            {file ? (
+              <p className="rounded-md border bg-muted/30 p-2 font-mono text-xs">{file.name}</p>
+            ) : null}
+            {removeAward ? (
+              <p className="rounded-md bg-rose-50 px-2 py-1.5 text-xs text-rose-700">
+                儲存後將移除目前的通知信。
+                <button
+                  type="button"
+                  className="ml-2 underline"
+                  onClick={() => setRemoveAward(false)}
+                >
+                  取消移除
+                </button>
+              </p>
+            ) : null}
+            {!file && (!s?.award_letter_path || removeAward) ? (
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                disabled={pending}
+                className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-accent"
+              />
+            ) : null}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="schol-notes" className="text-xs">
+              備註
+            </Label>
+            <Textarea
+              id="schol-notes"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={pending}
+            />
+          </div>
+        </>
+      ) : null}
+      <Button onClick={submit} disabled={pending} size="sm" className="w-full">
+        {pending ? '儲存中…' : '儲存獎學金'}
       </Button>
     </section>
   )

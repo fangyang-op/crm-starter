@@ -221,3 +221,204 @@ export async function updateCommission(
   revalidatePath(`/students/${studentId}`)
   return { ok: true }
 }
+
+// ============================================================================
+// 5.1 — Decision file upload (offer letter / rejection letter)
+// ============================================================================
+const DECISION_BUCKET = 'application-decisions'
+const SCHOLARSHIP_BUCKET = 'application-scholarships'
+
+function safePdfName(kind: string): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-')
+  return `${kind}-${ts}.pdf`
+}
+
+async function uploadPdf(
+  bucket: string,
+  studentId: string,
+  applicationId: string,
+  file: File,
+  kind: string,
+): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  if (file.type !== 'application/pdf') {
+    return { ok: false, error: '檔案必須是 PDF 格式' }
+  }
+  const supabase = createClient()
+  const path = `${studentId}/${applicationId}/${safePdfName(kind)}`
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    contentType: 'application/pdf',
+    upsert: false,
+  })
+  if (error) return { ok: false, error: `上傳失敗:${error.message}` }
+  return { ok: true, path }
+}
+
+async function removeFile(bucket: string, path: string): Promise<void> {
+  if (!path) return
+  const supabase = createClient()
+  await supabase.storage.from(bucket).remove([path])
+}
+
+export async function uploadDecisionFile(
+  studentId: string,
+  formData: FormData,
+): Promise<ApplicationActionResult> {
+  const applicationId = formData.get('application_id')
+  const kind = formData.get('kind')
+  const file = formData.get('file')
+  if (typeof applicationId !== 'string' || !applicationId) {
+    return { ok: false, error: '缺少申請 id' }
+  }
+  if (kind !== 'offer' && kind !== 'rejection') {
+    return { ok: false, error: '無效的檔案類型' }
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: '請選擇檔案' }
+  }
+
+  const supabase = createClient()
+  const { data: app } = await supabase
+    .from('applications')
+    .select('offer_letter_path, rejection_letter_path')
+    .eq('id', applicationId)
+    .maybeSingle()
+  const oldPath =
+    kind === 'offer'
+      ? ((app as { offer_letter_path?: string | null } | null)?.offer_letter_path ?? null)
+      : ((app as { rejection_letter_path?: string | null } | null)?.rejection_letter_path ?? null)
+
+  const up = await uploadPdf(DECISION_BUCKET, studentId, applicationId, file, kind)
+  if (!up.ok) return up
+
+  const { error } = await supabase.rpc(
+    'set_application_decision_file' as never,
+    { p_application_id: applicationId, p_kind: kind, p_path: up.path } as never,
+  )
+  if (error) {
+    await removeFile(DECISION_BUCKET, up.path)
+    return { ok: false, error: `更新失敗:${(error as { message: string }).message}` }
+  }
+
+  if (oldPath && oldPath !== up.path) {
+    await removeFile(DECISION_BUCKET, oldPath)
+  }
+
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true }
+}
+
+export async function clearDecisionFile(
+  studentId: string,
+  applicationId: string,
+  kind: 'offer' | 'rejection',
+): Promise<ApplicationActionResult> {
+  if (!applicationId) return { ok: false, error: '缺少申請 id' }
+  const supabase = createClient()
+  const { data: app } = await supabase
+    .from('applications')
+    .select('offer_letter_path, rejection_letter_path')
+    .eq('id', applicationId)
+    .maybeSingle()
+  const oldPath =
+    kind === 'offer'
+      ? ((app as { offer_letter_path?: string | null } | null)?.offer_letter_path ?? null)
+      : ((app as { rejection_letter_path?: string | null } | null)?.rejection_letter_path ?? null)
+
+  const { error } = await supabase.rpc(
+    'set_application_decision_file' as never,
+    { p_application_id: applicationId, p_kind: kind, p_path: null } as never,
+  )
+  if (error) {
+    return { ok: false, error: `清除失敗:${(error as { message: string }).message}` }
+  }
+  if (oldPath) await removeFile(DECISION_BUCKET, oldPath)
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true }
+}
+
+export type DecisionUrlResult = { ok: true; url: string } | { ok: false; error: string }
+
+export async function getDecisionFileSignedUrl(path: string): Promise<DecisionUrlResult> {
+  if (!path) return { ok: false, error: '缺少檔案路徑' }
+  const supabase = createClient()
+  const { data, error } = await supabase.storage.from(DECISION_BUCKET).createSignedUrl(path, 60)
+  if (error || !data?.signedUrl) {
+    return { ok: false, error: error?.message ?? '無法取得下載連結' }
+  }
+  return { ok: true, url: data.signedUrl }
+}
+
+// ============================================================================
+// 5.2 — Scholarship upsert + file upload
+// ============================================================================
+export async function upsertScholarship(
+  studentId: string,
+  formData: FormData,
+): Promise<ApplicationActionResult> {
+  const applicationId = formData.get('application_id')
+  if (typeof applicationId !== 'string' || !applicationId) {
+    return { ok: false, error: '缺少申請 id' }
+  }
+  const has = formData.get('has_scholarship') === 'true'
+  const amountRaw = (formData.get('amount_twd') as string | null)?.trim() ?? ''
+  const amount = amountRaw === '' ? null : Number(amountRaw)
+  if (amountRaw && (!Number.isFinite(amount) || (amount as number) < 0)) {
+    return { ok: false, error: '獎學金金額必須是非負整數' }
+  }
+  const name = ((formData.get('scholarship_name') as string | null) ?? '').trim() || null
+  const notes = ((formData.get('notes') as string | null) ?? '').trim() || null
+  const file = formData.get('file')
+  const removeAward = formData.get('remove_award') === 'true'
+
+  const supabase = createClient()
+  const { data: existing } = await supabase
+    .from('application_scholarships' as never)
+    .select('award_letter_path')
+    .eq('application_id' as never, applicationId as never)
+    .maybeSingle()
+  const oldAwardPath =
+    (existing as { award_letter_path?: string | null } | null)?.award_letter_path ?? null
+
+  let awardPath: string | null = oldAwardPath
+  if (file instanceof File && file.size > 0) {
+    const up = await uploadPdf(SCHOLARSHIP_BUCKET, studentId, applicationId, file, 'award')
+    if (!up.ok) return up
+    awardPath = up.path
+  } else if (removeAward) {
+    awardPath = null
+  }
+
+  const { error } = await supabase.rpc(
+    'upsert_application_scholarship' as never,
+    {
+      p_application_id: applicationId,
+      p_has_scholarship: has,
+      p_amount_twd: amount,
+      p_scholarship_name: name,
+      p_award_letter_path: awardPath,
+      p_notes: notes,
+    } as never,
+  )
+  if (error) {
+    if (awardPath && awardPath !== oldAwardPath) {
+      await removeFile(SCHOLARSHIP_BUCKET, awardPath)
+    }
+    return { ok: false, error: `儲存失敗:${(error as { message: string }).message}` }
+  }
+  if (oldAwardPath && oldAwardPath !== awardPath) {
+    await removeFile(SCHOLARSHIP_BUCKET, oldAwardPath)
+  }
+
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true }
+}
+
+export async function getScholarshipFileSignedUrl(path: string): Promise<DecisionUrlResult> {
+  if (!path) return { ok: false, error: '缺少檔案路徑' }
+  const supabase = createClient()
+  const { data, error } = await supabase.storage.from(SCHOLARSHIP_BUCKET).createSignedUrl(path, 60)
+  if (error || !data?.signedUrl) {
+    return { ok: false, error: error?.message ?? '無法取得下載連結' }
+  }
+  return { ok: true, url: data.signedUrl }
+}

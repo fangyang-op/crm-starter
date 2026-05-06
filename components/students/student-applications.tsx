@@ -20,7 +20,7 @@ export async function StudentApplications({ studentId, canEdit, isManager }: Pro
       'id, school_id, program_id, program_name_override, status, application_round, deadline, ' +
         'submitted_at, decision_at, decision_notes, portal_url, portal_username, ' +
         'portal_password_encrypted, portal_notes, application_fee, application_fee_paid, notes, ' +
-        'tuition_amount, tuition_currency',
+        'tuition_amount, tuition_currency, offer_letter_path, rejection_letter_path',
     )
     .eq('student_id', studentId)
     .order('created_at', { ascending: true })
@@ -45,6 +45,8 @@ export async function StudentApplications({ studentId, canEdit, isManager }: Pro
     notes: string | null
     tuition_amount: number | null
     tuition_currency: string | null
+    offer_letter_path: string | null
+    rejection_letter_path: string | null
   }>
 
   const schoolIds = Array.from(new Set(apps.map((a) => a.school_id)))
@@ -54,58 +56,82 @@ export async function StudentApplications({ studentId, canEdit, isManager }: Pro
 
   const appIds = apps.map((a) => a.id)
 
-  const [{ data: schools }, { data: programs }, { data: commissions }] = await Promise.all([
-    schoolIds.length > 0
-      ? supabase
-          .from('schools')
-          .select('id, name_en, name_zh, short_name, country, is_partner, partner_commission_rate')
-          .in('id', schoolIds)
-      : Promise.resolve({
-          data: [] as Array<{
-            id: string
-            name_en: string
-            name_zh: string | null
-            short_name: string | null
-            country: string
-            is_partner: boolean
-            partner_commission_rate: number | null
-          }>,
-        }),
-    programIds.length > 0
-      ? supabase
-          .from('school_programs')
-          .select('id, program_name, degree_level')
-          .in('id', programIds)
-      : Promise.resolve({
-          data: [] as Array<{ id: string; program_name: string; degree_level: string }>,
-        }),
-    // Commission records: only manager+/admin can SELECT (RLS), so non-managers
-    // simply receive [] here — no error to swallow.
-    isManager && appIds.length > 0
-      ? supabase
-          .from('commission_records')
-          .select(
-            'id, application_id, expected_amount, actual_amount, currency, status, ' +
-              'invoiced_at, received_at, notes',
-          )
-          .in('application_id', appIds)
-      : Promise.resolve({
-          data: [] as Array<{
-            id: string
-            application_id: string
-            expected_amount: number | null
-            actual_amount: number | null
-            currency: string
-            status: string
-            invoiced_at: string | null
-            received_at: string | null
-            notes: string | null
-          }>,
-        }),
-  ])
+  const [{ data: schools }, { data: programs }, { data: commissions }, { data: scholarships }] =
+    await Promise.all([
+      schoolIds.length > 0
+        ? supabase
+            .from('schools')
+            .select(
+              'id, name_en, name_zh, short_name, country, is_partner, partner_commission_rate',
+            )
+            .in('id', schoolIds)
+        : Promise.resolve({
+            data: [] as Array<{
+              id: string
+              name_en: string
+              name_zh: string | null
+              short_name: string | null
+              country: string
+              is_partner: boolean
+              partner_commission_rate: number | null
+            }>,
+          }),
+      programIds.length > 0
+        ? supabase
+            .from('school_programs')
+            .select('id, program_name, degree_level')
+            .in('id', programIds)
+        : Promise.resolve({
+            data: [] as Array<{ id: string; program_name: string; degree_level: string }>,
+          }),
+      // Commission records: only manager+/admin can SELECT (RLS), so non-managers
+      // simply receive [] here — no error to swallow.
+      isManager && appIds.length > 0
+        ? supabase
+            .from('commission_records')
+            .select(
+              'id, application_id, expected_amount, actual_amount, currency, status, ' +
+                'invoiced_at, received_at, notes',
+            )
+            .in('application_id', appIds)
+        : Promise.resolve({
+            data: [] as Array<{
+              id: string
+              application_id: string
+              expected_amount: number | null
+              actual_amount: number | null
+              currency: string
+              status: string
+              invoiced_at: string | null
+              received_at: string | null
+              notes: string | null
+            }>,
+          }),
+      appIds.length > 0
+        ? supabase
+            .from('application_scholarships' as never)
+            .select(
+              'id, application_id, has_scholarship, amount_twd, scholarship_name, award_letter_path, notes',
+            )
+            .in('application_id' as never, appIds as never)
+        : Promise.resolve({ data: [] as unknown as never[] }),
+    ])
 
   const schoolMap = new Map((schools ?? []).map((s) => [s.id, s]))
   const programMap = new Map((programs ?? []).map((p) => [p.id, p.program_name]))
+  const scholarshipMap = new Map(
+    (
+      (scholarships ?? []) as unknown as Array<{
+        id: string
+        application_id: string
+        has_scholarship: boolean
+        amount_twd: number | null
+        scholarship_name: string | null
+        award_letter_path: string | null
+        notes: string | null
+      }>
+    ).map((s) => [s.application_id, s]),
+  )
   const commissionMap = new Map(
     (
       (commissions ?? []) as unknown as Array<{
@@ -150,6 +176,18 @@ export async function StudentApplications({ studentId, canEdit, isManager }: Pro
       notes: a.notes,
       tuition_amount: a.tuition_amount,
       tuition_currency: a.tuition_currency ?? 'USD',
+      offer_letter_path: a.offer_letter_path,
+      rejection_letter_path: a.rejection_letter_path,
+      scholarship: scholarshipMap.get(a.id)
+        ? {
+            id: scholarshipMap.get(a.id)!.id,
+            has_scholarship: scholarshipMap.get(a.id)!.has_scholarship,
+            amount_twd: scholarshipMap.get(a.id)!.amount_twd,
+            scholarship_name: scholarshipMap.get(a.id)!.scholarship_name,
+            award_letter_path: scholarshipMap.get(a.id)!.award_letter_path,
+            notes: scholarshipMap.get(a.id)!.notes,
+          }
+        : null,
       commission: com
         ? {
             id: com.id,
