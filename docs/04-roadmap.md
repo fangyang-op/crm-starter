@@ -195,9 +195,13 @@
 - [ ] 寫入 `word_quota_ledger`(`bonus`)
 
 ### 3.5 觸發器
-- [ ] `documents_master_versions` INSERT 時自動寫 ledger(`used`)
-- [ ] `documents_variant_versions` INSERT 時自動寫 ledger(`used`)
-- [ ] Master Fork 不扣字數(只寫 activity_log)
+- [x] `documents_master_versions` INSERT 時自動寫 ledger(`used`) — `trg_master_version_ledger` (0001)
+- [x] `documents_variant_versions` INSERT 時自動寫 ledger(`used`) — `trg_variant_version_ledger` (0001)
+- [x] Master Fork 不扣字數(只寫 activity_log) — `fork_documents_variant` (0015) 設 v1 `word_diff=0`,trigger `> 0` 條件跳過;同函式內已寫 `activity_log`(action=`document_forked`)
+- [x] 補洞 C:trigger 描述加文件標題(`Master:{title} v{N}` / `Variant:{title} v{N}`) — 0017
+- [x] 補洞 D-2:餘額不足擋存檔(trigger `RAISE EXCEPTION 'INSUFFICIENT_WORD_QUOTA: ...'`,action 解析後丟友善 toast) — 0017
+- [ ] 補洞 D-1(並發鎖):**之後再說**(內部 50 人併發機率低)
+- [x] 帳本一致性 audit 腳本:`supabase/audits/3.5_word_quota_audit.sql`(4 道查詢:餘額漂移、版本→ledger 覆蓋、ledger→版本反向覆蓋、負餘額)
 
 ✅ **Phase 3 完成標準**:文件版本完整可追溯、字數每筆有紀錄、餘額正確。
 

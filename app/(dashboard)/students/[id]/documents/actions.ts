@@ -29,6 +29,19 @@ function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]>
   return result
 }
 
+// The trigger fn_ledger_on_version_insert raises with this prefix when the
+// student has insufficient quota. Strip the prefix so the user sees only the
+// localized guidance.
+const INSUFFICIENT_QUOTA_PREFIX = 'INSUFFICIENT_WORD_QUOTA:'
+
+function formatRpcError(prefix: string, message: string): string {
+  const idx = message.indexOf(INSUFFICIENT_QUOTA_PREFIX)
+  if (idx >= 0) {
+    return message.slice(idx + INSUFFICIENT_QUOTA_PREFIX.length).trim()
+  }
+  return `${prefix}${message}`
+}
+
 export async function createDocumentMaster(input: NewMasterInput): Promise<DocumentActionResult> {
   const parsed = newMasterSchema.safeParse(input)
   if (!parsed.success) {
@@ -101,7 +114,7 @@ export async function createMasterVersion(
   )
 
   if (error) {
-    return { ok: false, error: `儲存失敗:${(error as { message: string }).message}` }
+    return { ok: false, error: formatRpcError('儲存失敗:', (error as { message: string }).message) }
   }
 
   revalidatePath(`/students/${studentId}`)
@@ -181,7 +194,7 @@ export async function createVariantVersion(
   )
 
   if (error) {
-    return { ok: false, error: `儲存失敗:${(error as { message: string }).message}` }
+    return { ok: false, error: formatRpcError('儲存失敗:', (error as { message: string }).message) }
   }
 
   revalidatePath(`/students/${studentId}`)
