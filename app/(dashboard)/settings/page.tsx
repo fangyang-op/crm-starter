@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { ChevronRight, Package, UserSquare } from 'lucide-react'
+import { ChevronRight, KeyRound, Package, UserSquare } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin, type UserRole } from '@/lib/constants/roles'
@@ -57,6 +57,23 @@ export default async function SettingsIndexPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>方案內容、價格、加購單價(僅 admin)。</CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : null}
+
+        {isAdmin(role) ? (
+          <Link href="/settings/users">
+            <Card className="transition-colors hover:border-primary">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <KeyRound className="text-muted-foreground" size={20} />
+                  <CardTitle className="text-base">用戶管理</CardTitle>
+                </div>
+                <ChevronRight className="text-muted-foreground" size={16} />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>顧問帳號清單;可重置任何人的密碼(僅 admin)。</CardDescription>
               </CardContent>
             </Card>
           </Link>

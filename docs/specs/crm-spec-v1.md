@@ -90,11 +90,15 @@
   - `app/(dashboard)/settings/users/[id]/edit/page.tsx`(若已存在則新增區塊)
   - `app/(dashboard)/settings/users/[id]/actions.ts`(新增 `resetUserPassword` action)
 - **驗收**:
-  - [ ] 一般顧問可改自己密碼(需驗目前密碼)
-  - [ ] Admin 可在 `/settings/users/[id]/edit` 重置任何人密碼
-  - [ ] 一般顧問進不了 `/settings/users/*`(RLS / middleware 擋)
-  - [ ] 重置動作有寫入 `activity_log`
-- [ ] 完成
+  - [x] 一般顧問可改自己密碼(需驗目前密碼,透過 `signInWithPassword` 重新驗一次)
+  - [x] Admin 可在 `/settings/users/[id]/edit` 重置任何人密碼(走 service-role `auth.admin.updateUserById`)
+  - [x] 一般顧問進不了 `/settings/users/*`(per-page admin gate)
+  - [x] 重置動作寫入 `activity_log`(`password_reset_by_admin`,payload 含 target_name)
+- [x] 完成
+  - 新檔:`lib/supabase/admin.ts`(service role client, server-only)、`lib/validators/auth.ts`(密碼規則 + 隨機產生器)
+  - 個人:`/account/security` + form 元件(現密驗證後 `auth.updateUser`)
+  - Admin:`/settings/users` 列表 + `/settings/users/[id]/edit` 含 `<ResetPasswordCard>`(產生隨機密碼按鈕、僅顯示一次的回傳卡片)
+  - Topbar 用戶下拉新增「修改密碼」連結;Settings 首頁新增「用戶管理」入口
 
 ### 0.5 未開發頁面顯示「營運正在料理中」
 - **位置**:以下頁面目前是 404

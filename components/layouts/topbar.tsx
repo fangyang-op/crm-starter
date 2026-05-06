@@ -1,6 +1,8 @@
 'use client'
 
-import { ChevronDown, LogOut } from 'lucide-react'
+import Link from 'next/link'
+
+import { ChevronDown, KeyRound, LogOut } from 'lucide-react'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -59,6 +61,13 @@ export function Topbar({ fullName, displayName, email, role }: TopbarProps) {
               {ROLE_LABELS[role]}
             </Badge>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/account/security" className="flex items-center gap-2">
+              <KeyRound size={16} />
+              <span>修改密碼</span>
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <form action="/logout" method="post" className="w-full">
