@@ -6,6 +6,10 @@ import { ArrowLeft, Pencil } from 'lucide-react'
 import { CredentialsCard, type CredentialItem } from '@/components/students/credentials-card'
 import { DeferCard, type DeferRecord } from '@/components/students/defer-card'
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import {
+  RequiredDocumentsCard,
+  type RequiredDocItem,
+} from '@/components/students/required-documents-card'
 import { StudentApplications } from '@/components/students/student-applications'
 import { StudentDeals } from '@/components/students/student-deals'
 import { StudentDocuments } from '@/components/students/student-documents'
@@ -153,6 +157,52 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const visaCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'visa')
   const housingCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'housing')
 
+  // Required-documents checklist (spec § 2.11): join the org-wide templates
+  // table with this student's per-row state. We render every active template
+  // even if no row exists yet — the row gets upserted by toggle/upload.
+  const [{ data: templatesRaw }, { data: srdRaw }] = await Promise.all([
+    supabase
+      .from('document_templates' as never)
+      .select('id, code, label_zh, category, notes, default_required, sort_order, is_active')
+      .eq('is_active' as never, true as never)
+      .order('sort_order' as never, { ascending: true }),
+    supabase
+      .from('student_required_documents' as never)
+      .select('id, document_template_id, is_required, status, file_path')
+      .eq('student_id' as never, params.id as never),
+  ])
+  const templates = (templatesRaw ?? []) as unknown as Array<{
+    id: string
+    code: string
+    label_zh: string
+    category: 'school_application' | 'visa_enrollment' | 'other'
+    notes: string | null
+    default_required: boolean
+    sort_order: number
+  }>
+  const srdRows = (srdRaw ?? []) as unknown as Array<{
+    id: string
+    document_template_id: string
+    is_required: boolean
+    status: 'pending' | 'uploaded' | 'verified' | 'rejected'
+    file_path: string | null
+  }>
+  const srdByTemplate = new Map(srdRows.map((r) => [r.document_template_id, r]))
+  const requiredDocItems: RequiredDocItem[] = templates.map((t) => {
+    const r = srdByTemplate.get(t.id)
+    return {
+      template_id: t.id,
+      code: t.code,
+      label_zh: t.label_zh,
+      category: t.category,
+      notes: t.notes,
+      record_id: r?.id ?? null,
+      is_required: r ? r.is_required : t.default_required,
+      status: r?.status ?? 'pending',
+      file_path: r?.file_path ?? null,
+    }
+  })
+
   // Defer history (latest first)
   const { data: defersRaw } = await supabase
     .from('student_defers' as never)
@@ -263,6 +313,13 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             studentId={student.id}
             studentName={student.full_name}
             canAddBonus={isManagerOrAdmin(role) || student.frontend_consultant_id === user.id}
+          />
+
+          {/* 申請準備 Checklist (spec § 2.11) */}
+          <RequiredDocumentsCard
+            studentId={student.id}
+            items={requiredDocItems}
+            canEdit={canChangeStatus}
           />
 
           {/* Defer 延後入學 (spec § 2.3), eligible when status is decision_making/pre_departure/enrolled */}
