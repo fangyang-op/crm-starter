@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { DEPARTMENT_VALUES } from '@/lib/constants/department'
 import { isAdmin, type UserRole } from '@/lib/constants/roles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -96,7 +97,7 @@ const createUserSchema = z.object({
   full_name: z.string().min(1, '姓名必填').max(100),
   display_name: z.string().max(100).optional(),
   role: z.enum(['consultant', 'manager_frontend', 'manager_backend', 'admin']),
-  department: z.enum(['frontend', 'backend']).nullable(),
+  department: z.enum(DEPARTMENT_VALUES).nullable(),
   password: z
     .string()
     .min(8, '密碼至少 8 字元')
@@ -186,7 +187,7 @@ const updateUserProfileSchema = z.object({
   full_name: z.string().min(1, '姓名必填').max(100),
   display_name: z.string().max(100).nullable(),
   role: z.enum(['consultant', 'manager_frontend', 'manager_backend', 'admin']),
-  department: z.enum(['frontend', 'backend']).nullable(),
+  department: z.enum(DEPARTMENT_VALUES).nullable(),
 })
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>

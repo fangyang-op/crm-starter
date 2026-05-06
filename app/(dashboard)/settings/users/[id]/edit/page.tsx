@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { ArrowLeft } from 'lucide-react'
 
+import type { Department } from '@/lib/constants/department'
 import { isAdmin, ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 
@@ -61,7 +62,7 @@ export default async function UserEditPage({ params }: { params: { id: string } 
           full_name: target.full_name,
           display_name: target.display_name,
           role: target.role as UserRole,
-          department: target.department as 'frontend' | 'backend' | null,
+          department: target.department as Department | null,
           is_active: target.is_active,
         }}
       />

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DEPARTMENT_LABELS, DEPARTMENT_VALUES, type Department } from '@/lib/constants/department'
 import { ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
 import { generateRandomPassword } from '@/lib/validators/auth'
 
@@ -53,7 +54,7 @@ export function NewUserForm() {
         full_name: fullName.trim(),
         display_name: displayName.trim() || undefined,
         role,
-        department: department === NONE_DEPT ? null : (department as 'frontend' | 'backend'),
+        department: department === NONE_DEPT ? null : (department as Department),
         password,
       })
       if (!r.ok) {
@@ -186,8 +187,11 @@ export function NewUserForm() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE_DEPT}>未指定</SelectItem>
-                <SelectItem value="frontend">前端</SelectItem>
-                <SelectItem value="backend">後端</SelectItem>
+                {DEPARTMENT_VALUES.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {DEPARTMENT_LABELS[d]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

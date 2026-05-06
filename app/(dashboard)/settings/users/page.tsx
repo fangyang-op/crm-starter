@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DEPARTMENT_LABELS, DEPARTMENT_VALUES, type Department } from '@/lib/constants/department'
 import { isAdmin, ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -54,8 +55,9 @@ export default async function UsersListPage({ searchParams }: { searchParams: Se
   if (searchParams.role && ROLE_VALUES.includes(searchParams.role as UserRole)) {
     query = query.eq('role', searchParams.role as UserRole)
   }
-  if (searchParams.department === 'frontend' || searchParams.department === 'backend') {
-    query = query.eq('department', searchParams.department)
+  if ((DEPARTMENT_VALUES as readonly string[]).includes(searchParams.department ?? '')) {
+    // 'operations' value isn't in the regenerated types yet — cast through never.
+    query = query.eq('department', searchParams.department as never)
   }
   if (searchParams.active === 'true') query = query.eq('is_active', true)
   else if (searchParams.active === 'false') query = query.eq('is_active', false)
@@ -135,8 +137,11 @@ export default async function UsersListPage({ searchParams }: { searchParams: Se
             className="inline-flex h-10 w-32 items-center rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">全部部門</option>
-            <option value="frontend">前端</option>
-            <option value="backend">後端</option>
+            {DEPARTMENT_VALUES.map((d) => (
+              <option key={d} value={d}>
+                {DEPARTMENT_LABELS[d]}
+              </option>
+            ))}
           </select>
         </div>
         <div className="grid gap-1.5">
@@ -200,11 +205,10 @@ export default async function UsersListPage({ searchParams }: { searchParams: Se
                       {ROLE_LABELS[p.role as UserRole] ?? p.role}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {p.department === 'frontend'
-                        ? '前端'
-                        : p.department === 'backend'
-                          ? '後端'
-                          : '—'}
+                      {p.department &&
+                      (DEPARTMENT_VALUES as readonly string[]).includes(p.department)
+                        ? DEPARTMENT_LABELS[p.department as Department]
+                        : '—'}
                     </TableCell>
                     <TableCell>
                       {p.is_active ? (
