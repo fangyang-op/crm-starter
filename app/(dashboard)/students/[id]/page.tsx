@@ -107,6 +107,15 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       )?.label_zh ?? null)
     : null
 
+  // Spec § 2.9: 選校表 / 文件 / 申請 tabs are locked until at least one deal
+  // exists for this student. Deals don't have a soft-delete flag; any row
+  // counts as "成交建立".
+  const { count: dealCount } = await supabase
+    .from('deals')
+    .select('id', { count: 'exact', head: true })
+    .eq('student_id', params.id)
+  const hasDeal = (dealCount ?? 0) > 0
+
   // student_statuses for the changer dialog (active only) + the current status row.
   const { data: statusesRaw } = await supabase
     .from('student_statuses' as never)
@@ -191,9 +200,15 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <TabsTrigger value="timeline">時間軸</TabsTrigger>
           <TabsTrigger value="scores">成績</TabsTrigger>
           <TabsTrigger value="deals">成交</TabsTrigger>
-          <TabsTrigger value="schools">選校表</TabsTrigger>
-          <TabsTrigger value="documents">文件</TabsTrigger>
-          <TabsTrigger value="applications">申請</TabsTrigger>
+          <TabsTrigger value="schools" disabled={!hasDeal}>
+            選校表 {!hasDeal ? '🔒' : ''}
+          </TabsTrigger>
+          <TabsTrigger value="documents" disabled={!hasDeal}>
+            文件 {!hasDeal ? '🔒' : ''}
+          </TabsTrigger>
+          <TabsTrigger value="applications" disabled={!hasDeal}>
+            申請 {!hasDeal ? '🔒' : ''}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -326,19 +341,45 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           />
         </TabsContent>
         <TabsContent value="schools">
-          <StudentSchools studentId={student.id} canEdit={canChangeStatus} />
+          {hasDeal ? (
+            <StudentSchools studentId={student.id} canEdit={canChangeStatus} />
+          ) : (
+            <DealGateNotice />
+          )}
         </TabsContent>
         <TabsContent value="documents">
-          <StudentDocuments studentId={student.id} canCreate={canChangeStatus} />
+          {hasDeal ? (
+            <StudentDocuments studentId={student.id} canCreate={canChangeStatus} />
+          ) : (
+            <DealGateNotice />
+          )}
         </TabsContent>
         <TabsContent value="applications">
-          <StudentApplications
-            studentId={student.id}
-            canEdit={canChangeStatus}
-            isManager={isManagerOrAdmin(role)}
-          />
+          {!hasDeal ? (
+            <DealGateNotice />
+          ) : (
+            <StudentApplications
+              studentId={student.id}
+              canEdit={canChangeStatus}
+              isManager={isManagerOrAdmin(role)}
+            />
+          )}
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function DealGateNotice() {
+  return (
+    <div className="rounded-md border border-dashed p-12 text-center">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+        🔒
+      </div>
+      <h3 className="text-sm font-medium">尚未建立成交</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        請先到「成交」分頁建立至少一筆成交,選校表 / 文件 / 申請功能會自動解鎖。
+      </p>
     </div>
   )
 }
