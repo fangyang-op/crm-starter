@@ -26,11 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import {
-  createLeadSource,
-  updateLeadSource,
-  type LeadSourceDetailField,
-} from '@/app/(dashboard)/settings/lead-sources/actions'
+import { createLeadSource, updateLeadSource } from '@/app/(dashboard)/settings/lead-sources/actions'
+import type { LeadSourceDetailField } from '@/lib/constants/lead-source'
 
 export type LeadSourceInitial = {
   id: string

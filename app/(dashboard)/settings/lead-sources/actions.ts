@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import {
+  LEAD_SOURCE_DETAIL_FIELD_VALUES,
+  type LeadSourceDetailField,
+} from '@/lib/constants/lead-source'
 import { createClient } from '@/lib/supabase/server'
 
 export type LeadSourceActionResult =
@@ -10,9 +14,6 @@ export type LeadSourceActionResult =
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
 
 export type LeadSourceSimpleResult = { ok: true } | { ok: false; error: string }
-
-export const LEAD_SOURCE_DETAIL_FIELD_VALUES = ['none', 'internal_user', 'referrer'] as const
-export type LeadSourceDetailField = (typeof LEAD_SOURCE_DETAIL_FIELD_VALUES)[number]
 
 const leadSourceSchema = z
   .object({
