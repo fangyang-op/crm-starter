@@ -2,7 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { dealSchema, type DealInput } from '@/lib/validators/deal'
+import {
+  dealEditSchema,
+  dealSchema,
+  type DealEditInput,
+  type DealInput,
+} from '@/lib/validators/deal'
 import { createClient } from '@/lib/supabase/server'
 
 export type DealActionResult =
@@ -56,4 +61,37 @@ export async function createDeal(input: DealInput): Promise<DealActionResult> {
   revalidatePath(`/students/${parsed.data.student_id}`)
   revalidatePath('/students')
   return { ok: true, id: data as unknown as string }
+}
+
+export async function updateDeal(
+  dealId: string,
+  studentId: string,
+  input: DealEditInput,
+): Promise<DealActionResult> {
+  if (!dealId) return { ok: false, error: '缺少成交 id' }
+
+  const parsed = dealEditSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
+  }
+
+  const supabase = createClient()
+  const { error } = await supabase.rpc(
+    'update_deal' as never,
+    {
+      p_id: dealId,
+      p_signed_at: parsed.data.signed_at,
+      p_contract_no: parsed.data.contract_no ?? null,
+      p_payment_status: parsed.data.payment_status,
+      p_discount_reason: parsed.data.discount_reason ?? null,
+      p_notes: parsed.data.notes ?? null,
+    } as never,
+  )
+
+  if (error) {
+    return { ok: false, error: `更新失敗:${(error as { message: string }).message}` }
+  }
+
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true, id: dealId }
 }

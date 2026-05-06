@@ -1,11 +1,12 @@
-import { Plus } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 
 import { CreateDealDialog } from '@/components/students/create-deal-dialog'
+import { EditDealDialog } from '@/components/students/edit-deal-dialog'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { SPLIT_ROLE_LABELS } from '@/lib/validators/deal'
+import { PAYMENT_STATUS_VALUES, SPLIT_ROLE_LABELS } from '@/lib/validators/deal'
 import { createClient } from '@/lib/supabase/server'
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
@@ -19,6 +20,7 @@ type Props = {
   studentName: string
   defaultConsultantId: string | null
   canCreate: boolean
+  canEdit: boolean
 }
 
 export async function StudentDeals({
@@ -26,6 +28,7 @@ export async function StudentDeals({
   studentName,
   defaultConsultantId,
   canCreate,
+  canEdit,
 }: Props) {
   const supabase = createClient()
 
@@ -144,13 +147,33 @@ export async function StudentDeals({
                   {d.contract_no ? ` · ${d.contract_no}` : ''}
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-xl font-bold tabular-nums">
-                  {d.currency} {Number(d.final_amount).toLocaleString('zh-TW')}
+              <div className="flex items-start gap-2">
+                <div className="text-right">
+                  <div className="text-xl font-bold tabular-nums">
+                    {d.currency} {Number(d.final_amount).toLocaleString('zh-TW')}
+                  </div>
+                  <Badge variant="secondary" className="mt-1">
+                    {PAYMENT_STATUS_LABELS[d.payment_status] ?? d.payment_status}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="mt-1">
-                  {PAYMENT_STATUS_LABELS[d.payment_status] ?? d.payment_status}
-                </Badge>
+                {canEdit ? (
+                  <EditDealDialog
+                    dealId={d.id}
+                    studentId={studentId}
+                    initial={{
+                      signed_at: d.signed_at,
+                      contract_no: d.contract_no,
+                      payment_status: d.payment_status as (typeof PAYMENT_STATUS_VALUES)[number],
+                      discount_reason: d.discount_reason,
+                      notes: d.notes,
+                    }}
+                    trigger={
+                      <Button variant="ghost" size="icon" aria-label="編輯成交">
+                        <Pencil size={14} />
+                      </Button>
+                    }
+                  />
+                ) : null}
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">

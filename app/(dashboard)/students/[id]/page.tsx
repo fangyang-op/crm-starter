@@ -290,6 +290,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             studentName={student.full_name}
             defaultConsultantId={student.frontend_consultant_id}
             canCreate={canChangeStatus}
+            canEdit={canChangeStatus}
           />
         </TabsContent>
         <TabsContent value="schools">

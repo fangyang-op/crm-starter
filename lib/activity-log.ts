@@ -82,6 +82,12 @@ export function formatActivity(activity: ActivityRow, actorName?: string): Activ
         iconClass: 'text-amber-600',
         description: activity.description ?? `${actor} 建立了成交`,
       }
+    case 'deal_updated':
+      return {
+        icon: FileEdit,
+        iconClass: 'text-amber-700',
+        description: activity.description ?? `${actor} 編輯了成交`,
+      }
     case 'school_list_locked':
       return {
         icon: Lock,

@@ -47,3 +47,17 @@ export const dealSchema = z
 
 export type DealInput = z.infer<typeof dealSchema>
 export type DealSplitInput = z.infer<typeof dealSplitSchema>
+
+/**
+ * Editable fields in update_deal (migration 0010). Excludes anything that
+ * would cascade to amounts / splits / ledger.
+ */
+export const dealEditSchema = z.object({
+  signed_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日期格式為 YYYY-MM-DD'),
+  contract_no: z.string().max(100).nullable().optional(),
+  payment_status: z.enum(PAYMENT_STATUS_VALUES),
+  discount_reason: z.string().max(500).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+})
+
+export type DealEditInput = z.infer<typeof dealEditSchema>
