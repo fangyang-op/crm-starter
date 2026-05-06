@@ -151,10 +151,10 @@
 ## Phase 2:選校表(1 週)
 
 ### 2.1 學校資料庫(共用)
-- [ ] `app/(dashboard)/schools/page.tsx` — 學校列表(搜尋、國別篩選)
-- [ ] `app/(dashboard)/schools/[id]/page.tsx` — 學校詳細頁
-- [ ] 學校 CRUD(僅 manager+)
-- [ ] `school_programs` 子表 CRUD
+- [x] `app/(dashboard)/schools/page.tsx` — 學校列表(搜尋 / 國別篩選 / 分頁 30 筆 / 排名升序)
+- [x] `app/(dashboard)/schools/[id]/page.tsx` — 學校詳細頁(基本資訊 + 排名/合作 + 科系子表)
+- [x] 學校 CRUD(`create_school` / `update_school` SD 函式 / migration 0012,僅 manager+)
+- [x] `school_programs` 子表 CRUD(`create_school_program` / `update_school_program` SD 函式)
 
 ### 2.2 選校表(學生主頁分頁)
 - [ ] `students/[id]/schools/` — 選校表分頁
