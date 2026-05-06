@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { ArrowLeft, Pencil } from 'lucide-react'
 
+import { CredentialsCard, type CredentialItem } from '@/components/students/credentials-card'
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
 import { StudentApplications } from '@/components/students/student-applications'
 import { StudentDeals } from '@/components/students/student-deals'
@@ -116,6 +117,41 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .eq('student_id', params.id)
   const hasDeal = (dealCount ?? 0) > 0
 
+  // Spec § 2.10: visa/housing credential cards unlock once at least one
+  // application has reached status='enrolled'.
+  const { count: enrolledCount } = await supabase
+    .from('applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('student_id', params.id)
+    .eq('status', 'enrolled')
+  const credentialsUnlocked = (enrolledCount ?? 0) > 0
+
+  const { data: credentialsRaw } = await supabase
+    .from('student_credentials' as never)
+    .select('id, credential_type, label, url, account, password_encrypted, notes')
+    .eq('student_id' as never, params.id as never)
+  const credentials = (
+    (credentialsRaw ?? []) as unknown as Array<{
+      id: string
+      credential_type: 'visa' | 'housing'
+      label: string
+      url: string | null
+      account: string | null
+      password_encrypted: string | null
+      notes: string | null
+    }>
+  ).map((c) => ({
+    id: c.id,
+    credential_type: c.credential_type,
+    label: c.label,
+    url: c.url,
+    account: c.account,
+    has_password: Boolean(c.password_encrypted),
+    notes: c.notes,
+  }))
+  const visaCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'visa')
+  const housingCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'housing')
+
   // student_statuses for the changer dialog (active only) + the current status row.
   const { data: statusesRaw } = await supabase
     .from('student_statuses' as never)
@@ -217,6 +253,26 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             studentName={student.full_name}
             canAddBonus={isManagerOrAdmin(role) || student.frontend_consultant_id === user.id}
           />
+
+          {/* 入學準備 — 簽證 / 住宿帳密 (spec § 2.10), gated by enrolled */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <CredentialsCard
+              studentId={student.id}
+              type="visa"
+              title="簽證帳密"
+              items={visaCreds}
+              unlocked={credentialsUnlocked}
+              canEdit={canChangeStatus}
+            />
+            <CredentialsCard
+              studentId={student.id}
+              type="housing"
+              title="住宿帳密"
+              items={housingCreds}
+              unlocked={credentialsUnlocked}
+              canEdit={canChangeStatus}
+            />
+          </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
