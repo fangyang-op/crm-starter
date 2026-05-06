@@ -7,6 +7,17 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  // Status colors are picked from a DB-stored color_key (admin-controlled).
+  // Even with `lib/` in content above, the regex scanner can miss tokens
+  // when admins introduce new colors via the dialog. Safelist all tier
+  // combinations we hand out from COLOR_PRESETS so they survive purge.
+  safelist: [
+    {
+      pattern:
+        /^(bg|text|border)-(slate|gray|blue|cyan|violet|emerald|teal|indigo|purple|fuchsia|amber|orange|lime|green|yellow|red|rose|pink)-(100|300|700)$/,
+    },
   ],
   theme: {
     extend: {
