@@ -179,11 +179,18 @@
      - Admin 不可刪除自己 / 不可把自己降級
 - **DB 影響**:`profiles` 表確認欄位:`role`、`department`、`is_active`、`created_by`、`last_login_at`,缺欄位則建立 migration
 - **驗收**:
-  - [ ] Admin 可新增帳號並設定角色 / 部門
-  - [ ] Admin 可重置任何人密碼(連動 0.4 B)
-  - [ ] Admin 不可降級 / 刪除自己
-  - [ ] 非 Admin 進不來
-- [ ] 完成
+  - [x] Admin 可新增帳號並設定角色 / 部門(`/settings/users/new` + `auth.admin.createUser` + `admin_create_user_profile` SD;失敗時自動 rollback auth user)
+  - [x] Admin 可重置任何人密碼(0.4 B 已完成)
+  - [x] Admin 不可降級 / 刪除自己(SD `admin_update_user_profile` / `admin_set_user_active` 內嵌守則)
+  - [x] 非 Admin 進不來(per-page admin gate)
+  - [x] 列表加篩選器(角色 / 部門 / 啟用狀態 / 搜尋姓名 Email)
+  - [x] 列表顯示「最後登入時間」(從 `auth.admin.listUsers` 取 `last_sign_in_at`)
+  - [x] 編輯頁可改姓名 / 顯示名稱 / 角色 / 部門
+  - [x] 停用 / 重新啟用按鈕(同步 `auth.admin.updateUserById` 設 ban_duration 100年/none)
+- [x] 完成
+  - 0024 migration 加 `profiles.created_by` + 三個 SD function
+  - 新檔:`/settings/users/new` 頁 + form + 對話結束顯示初始密碼一次
+  - 新增 `<ProfileEditCard>` 整合到既有編輯頁;停用 toggle 在卡片底部
 
 ### 1.3 學生狀態總列表維護
 - **位置**:`app/(dashboard)/settings/student-statuses/`

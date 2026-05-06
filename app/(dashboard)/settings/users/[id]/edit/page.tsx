@@ -3,10 +3,10 @@ import { notFound, redirect } from 'next/navigation'
 
 import { ArrowLeft } from 'lucide-react'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin, ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 
+import { ProfileEditCard } from './profile-edit-card'
 import { ResetPasswordCard } from './reset-password-card'
 
 export const metadata = { title: '編輯用戶 — 留學代辦 CRM' }
@@ -27,7 +27,7 @@ export default async function UserEditPage({ params }: { params: { id: string } 
 
   const { data: target } = await supabase
     .from('profiles')
-    .select('id, full_name, display_name, role')
+    .select('id, full_name, display_name, role, department, is_active, email')
     .eq('id', params.id)
     .maybeSingle()
   if (!target) notFound()
@@ -49,24 +49,22 @@ export default async function UserEditPage({ params }: { params: { id: string } 
       <header>
         <h1 className="text-2xl font-semibold">{target.display_name || target.full_name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {ROLE_LABELS[target.role as UserRole] ?? target.role}
+          {target.email} · {ROLE_LABELS[target.role as UserRole] ?? target.role}
           {isSelf ? ' · 這是你自己的帳號' : ''}
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">基本資料</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
-          <span className="text-muted-foreground">中文姓名</span>
-          <span>{target.full_name}</span>
-          <span className="text-muted-foreground">顯示名稱</span>
-          <span>{target.display_name ?? '—'}</span>
-          <span className="text-muted-foreground">角色</span>
-          <span>{ROLE_LABELS[target.role as UserRole] ?? target.role}</span>
-        </CardContent>
-      </Card>
+      <ProfileEditCard
+        userId={target.id}
+        isSelf={isSelf}
+        initial={{
+          full_name: target.full_name,
+          display_name: target.display_name,
+          role: target.role as UserRole,
+          department: target.department as 'frontend' | 'backend' | null,
+          is_active: target.is_active,
+        }}
+      />
 
       <ResetPasswordCard
         targetUserId={target.id}
