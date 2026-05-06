@@ -315,24 +315,24 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             canAddBonus={isManagerOrAdmin(role) || student.frontend_consultant_id === user.id}
           />
 
-          {/* 申請準備 Checklist (spec § 2.11) */}
-          <RequiredDocumentsCard
-            studentId={student.id}
-            items={requiredDocItems}
-            canEdit={canChangeStatus}
-          />
-
-          {/* Defer 延後入學 (spec § 2.3), eligible when status is decision_making/pre_departure/enrolled */}
-          <DeferCard
-            studentId={student.id}
-            records={deferRecords}
-            eligible={
-              currentStatus?.code === 'decision_making' ||
-              currentStatus?.code === 'pre_departure' ||
-              currentStatus?.code === 'enrolled'
-            }
-            canEdit={canChangeStatus}
-          />
+          {/* 申請準備 Checklist (左) + Defer 延後入學 (右) */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <RequiredDocumentsCard
+              studentId={student.id}
+              items={requiredDocItems}
+              canEdit={canChangeStatus}
+            />
+            <DeferCard
+              studentId={student.id}
+              records={deferRecords}
+              eligible={
+                currentStatus?.code === 'decision_making' ||
+                currentStatus?.code === 'pre_departure' ||
+                currentStatus?.code === 'enrolled'
+              }
+              canEdit={canChangeStatus}
+            />
+          </div>
 
           {/* 入學準備 — 簽證 / 住宿帳密 (spec § 2.10), gated by enrolled */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

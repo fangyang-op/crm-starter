@@ -1,15 +1,22 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 
-import { CheckCircle2, FileText, XCircle } from 'lucide-react'
+import { CheckCircle2, ChevronRight, FileText, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 import {
   clearRequiredDocument,
@@ -52,6 +59,81 @@ const CATEGORY_LABEL: Record<RequiredDocItem['category'], string> = {
 }
 
 export function RequiredDocumentsCard({ studentId, items, canEdit }: Props) {
+  const [open, setOpen] = useState(false)
+
+  // Compact stats for the trigger card.
+  const required = items.filter((i) => i.is_required)
+  const uploaded = required.filter((i) => i.status === 'uploaded' || i.status === 'verified').length
+  const verified = required.filter((i) => i.status === 'verified').length
+  const rejected = required.filter((i) => i.status === 'rejected').length
+
+  return (
+    <>
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setOpen(true)
+          }
+        }}
+        className="cursor-pointer transition-colors hover:border-primary"
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText size={16} />
+            申請準備檔案
+          </CardTitle>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="space-y-1.5 text-sm">
+          <div className="flex items-baseline justify-between">
+            <span className="text-muted-foreground">已上傳 / 應收</span>
+            <span className="tabular-nums">
+              <span className="text-2xl font-semibold text-foreground">{uploaded}</span>
+              <span className="text-muted-foreground"> / {required.length}</span>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 pt-1.5 text-xs">
+            {verified > 0 ? (
+              <Badge variant="outline" className={STATUS_CONFIG.verified.className}>
+                {verified} 已驗證
+              </Badge>
+            ) : null}
+            {rejected > 0 ? (
+              <Badge variant="outline" className={STATUS_CONFIG.rejected.className}>
+                {rejected} 退件
+              </Badge>
+            ) : null}
+            {uploaded === 0 && rejected === 0 ? (
+              <Badge variant="outline" className={STATUS_CONFIG.pending.className}>
+                尚未開始
+              </Badge>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>申請準備檔案</SheetTitle>
+            <SheetDescription>
+              ⚠ 各校申請要求不同 · 提醒英文拼字與護照相同 · 建議彩色掃描或拍照。
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <DocList studentId={studentId} items={items} canEdit={canEdit} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
+  )
+}
+
+function DocList({ studentId, items, canEdit }: Props) {
   const grouped = new Map<RequiredDocItem['category'], RequiredDocItem[]>()
   for (const it of items) {
     const arr = grouped.get(it.category) ?? []
@@ -60,35 +142,24 @@ export function RequiredDocumentsCard({ studentId, items, canEdit }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileText size={16} />
-          申請準備檔案
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          ⚠ 各校申請要求不同 · 提醒英文拼字與護照相同 · 建議彩色掃描或拍照
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {(['school_application', 'visa_enrollment', 'other'] as const).map((cat) => {
-          const list = grouped.get(cat) ?? []
-          if (list.length === 0) return null
-          return (
-            <div key={cat} className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                {CATEGORY_LABEL[cat]}
-              </p>
-              {list
-                .sort((a, b) => a.label_zh.localeCompare(b.label_zh))
-                .map((it) => (
-                  <DocRow key={it.template_id} studentId={studentId} item={it} canEdit={canEdit} />
-                ))}
-            </div>
-          )
-        })}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {(['school_application', 'visa_enrollment', 'other'] as const).map((cat) => {
+        const list = grouped.get(cat) ?? []
+        if (list.length === 0) return null
+        return (
+          <div key={cat} className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">
+              {CATEGORY_LABEL[cat]}
+            </p>
+            {list
+              .sort((a, b) => a.label_zh.localeCompare(b.label_zh))
+              .map((it) => (
+                <DocRow key={it.template_id} studentId={studentId} item={it} canEdit={canEdit} />
+              ))}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
