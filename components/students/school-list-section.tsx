@@ -41,7 +41,13 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { COUNTRY_LABELS } from '@/lib/constants/school'
-import { TIER_BADGE_CLASS, TIER_LABELS, TIER_VALUES, type Tier } from '@/lib/constants/tier'
+import {
+  TIER_BADGE_CLASS,
+  TIER_LABELS,
+  TIER_SORT,
+  TIER_VALUES,
+  type Tier,
+} from '@/lib/constants/tier'
 
 import {
   createSchoolList,
@@ -270,7 +276,14 @@ export function SchoolListSection({
       ) : (
         <div className="space-y-2">
           {selected.items
-            .sort((a, b) => a.display_order - b.display_order)
+            .slice()
+            .sort((a, b) => {
+              // Per spec § 4.2: dream > match > safety, then by display_order
+              // within each tier so manual reordering is preserved.
+              const tierDiff = TIER_SORT[a.tier] - TIER_SORT[b.tier]
+              if (tierDiff !== 0) return tierDiff
+              return a.display_order - b.display_order
+            })
             .map((item, idx) => (
               <SchoolItemRow
                 key={item.id}
