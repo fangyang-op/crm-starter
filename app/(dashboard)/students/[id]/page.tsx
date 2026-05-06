@@ -8,6 +8,7 @@ import { StudentApplications } from '@/components/students/student-applications'
 import { StudentDeals } from '@/components/students/student-deals'
 import { StudentDocuments } from '@/components/students/student-documents'
 import { StudentSchools } from '@/components/students/student-schools'
+import { StudentScores } from '@/components/students/student-scores'
 import { StudentStatusChanger } from '@/components/students/student-status-changer'
 import { StudentTimeline } from '@/components/students/student-timeline'
 import { WordQuotaCard } from '@/components/students/word-quota-card'
@@ -170,6 +171,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         <TabsList>
           <TabsTrigger value="overview">概覽</TabsTrigger>
           <TabsTrigger value="timeline">時間軸</TabsTrigger>
+          <TabsTrigger value="scores">成績</TabsTrigger>
           <TabsTrigger value="deals">成交</TabsTrigger>
           <TabsTrigger value="schools">選校表</TabsTrigger>
           <TabsTrigger value="documents">文件</TabsTrigger>
@@ -292,6 +294,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
         <TabsContent value="timeline">
           <StudentTimeline studentId={student.id} />
+        </TabsContent>
+        <TabsContent value="scores">
+          <StudentScores studentId={student.id} canEdit={canChangeStatus} />
         </TabsContent>
         <TabsContent value="deals">
           <StudentDeals

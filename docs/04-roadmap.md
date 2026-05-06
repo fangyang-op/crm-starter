@@ -227,9 +227,15 @@
 - [x] 列表:四欄 + 一個 Portal 快速指示
 
 ### 4.3 成績管理
-- [ ] `students/[id]` 主頁加「成績」分頁
-- [ ] 新增成績(類型 + 主分數 + sub_scores JSON)
-- [ ] 上傳證書 → Supabase Storage
+- [x] `students/[id]` 加「成績」分頁(放在 timeline 之後、deals 之前)
+- [x] SD CRUD(0020):`create_academic_score` / `update_academic_score` / `delete_academic_score`(回傳 storage path 給 action 清檔);`_score_authorize` 統一權限
+- [x] 動態 sub_scores 表單:依考試類型顯示對應子項(TOEFL R/L/S/W、IELTS L/R/W/S、GRE V/Q/AWA、GMAT V/Q/AWA/IR、SAT R&W/Math),純數字會 coerce 成 number 寫進 JSONB
+- [x] 上傳證書 → `student-certificates` private bucket(0820 setup SQL,10MB cap、png/jpeg/webp/pdf allowlist、prefix 路徑 `{student_id}/{score_id}/{filename}`)
+- [x] 兩階段建立:先 RPC create 取得 score_id → 上傳 file → RPC update 寫回 path;失敗自動 rollback(刪 storage + 刪 row)
+- [x] Storage RLS:同 academic_scores RLS,經 `storage.foldername(name)[1]::uuid` 取出 student_id 比對(`supabase/setup/4.3_storage_certificates.sql`)
+- [x] 下載按鈕經 `getCertificateSignedUrl` 簽名 60 秒短時效 URL,新分頁開啟
+- [x] 編輯 sheet 支援:替換證書(刪舊 + 上新)、移除證書(獨立按鈕 + 紅色提示)、保留不動(預設)
+- [x] 刪除 score 連同 storage 證書一起清掉;activity_log 紀錄 `score_added` / `score_updated` / `score_deleted`(含 had_certificate 旗標)
 
 ### 4.4 佣金紀錄
 - [ ] application 狀態 = `enrolled` 且學校 `is_partner = true`
