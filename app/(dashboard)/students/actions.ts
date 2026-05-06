@@ -47,10 +47,39 @@ export async function createStudent(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: '未登入' }
 
+  // Migration 0026 dropped the enum default and made status_id NOT NULL.
+  // Look up 'new_lead' (the historical default) and fall back to the
+  // lowest-sort active status if an admin renamed/disabled it.
+  const { data: defaultStatus } = await supabase
+    .from('student_statuses' as never)
+    .select('id, code')
+    .eq('code' as never, 'new_lead' as never)
+    .maybeSingle()
+  let defaultStatusId = (defaultStatus as { id?: string } | null)?.id ?? null
+  if (!defaultStatusId) {
+    const { data: anyActive } = await supabase
+      .from('student_statuses' as never)
+      .select('id')
+      .eq('is_active' as never, true as never)
+      .order('sort_order' as never, { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    defaultStatusId = (anyActive as { id?: string } | null)?.id ?? null
+  }
+  if (!defaultStatusId) {
+    return {
+      ok: false,
+      error:
+        '系統未設定學生狀態。請先到「設定 → 學生狀態」新增至少一筆,或把預設的 new_lead 重新啟用。',
+    }
+  }
+
   const payload = {
     ...toDbPayload(parsed.data),
     // RLS WITH CHECK: created_by must equal auth.uid()
     created_by: user.id,
+    // Required since 0026 — codegen may not have caught up so cast through never.
+    status_id: defaultStatusId,
   } as never
   const { data, error } = await supabase.from('students').insert(payload).select('id').single()
 
