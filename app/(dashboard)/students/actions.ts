@@ -38,15 +38,12 @@ export async function createStudent(input: StudentInput): Promise<ActionResult> 
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: '未登入' }
 
-  const { data, error } = await supabase
-    .from('students')
-    .insert({
-      ...toDbPayload(parsed.data),
-      // RLS WITH CHECK: created_by must equal auth.uid()
-      created_by: user.id,
-    })
-    .select('id')
-    .single()
+  const payload = {
+    ...toDbPayload(parsed.data),
+    // RLS WITH CHECK: created_by must equal auth.uid()
+    created_by: user.id,
+  } as never
+  const { data, error } = await supabase.from('students').insert(payload).select('id').single()
 
   if (error) {
     return { ok: false, error: `建立失敗:${error.message}` }

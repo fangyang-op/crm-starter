@@ -26,7 +26,7 @@ export async function createReferrer(input: ReferrerInput): Promise<ReferrerActi
   }
 
   const supabase = createClient()
-  // SECURITY DEFINER (migration 0006) — same RLS-quirk avoidance as students.
+  // 6-arg variant from migration 0022 — adds default_split_percent.
   const { data, error } = await supabase.rpc(
     'create_referrer' as never,
     {
@@ -34,6 +34,7 @@ export async function createReferrer(input: ReferrerInput): Promise<ReferrerActi
       p_type: parsed.data.type,
       p_contact_email: parsed.data.contact_email ?? null,
       p_contact_phone: parsed.data.contact_phone ?? null,
+      p_default_split_percent: parsed.data.default_split_percent ?? null,
       p_notes: parsed.data.notes ?? null,
     } as never,
   )
@@ -66,6 +67,7 @@ export async function updateReferrer(
       p_type: parsed.data.type,
       p_contact_email: parsed.data.contact_email ?? null,
       p_contact_phone: parsed.data.contact_phone ?? null,
+      p_default_split_percent: parsed.data.default_split_percent ?? null,
       p_notes: parsed.data.notes ?? null,
       p_is_active: parsed.data.is_active,
     } as never,

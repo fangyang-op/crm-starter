@@ -39,6 +39,12 @@ import {
 
 import type { ActionResult } from '@/app/(dashboard)/students/actions'
 
+export type LeadSourceOption = {
+  id: string
+  code: string
+  label_zh: string
+}
+
 export type StudentFormProps = {
   mode: 'create' | 'edit'
   studentId?: string
@@ -47,17 +53,9 @@ export type StudentFormProps = {
   currentUserRole: UserRole
   consultantOptions: Array<{ id: string; name: string }>
   referrerOptions: Array<{ id: string; name: string; type: string }>
+  leadSourceOptions: LeadSourceOption[]
   onSubmit: (input: StudentInput) => Promise<ActionResult>
 }
-
-const LEAD_SOURCE_OPTIONS = [
-  { value: 'self_developed', label: '自行開發' },
-  { value: 'marketing_dept', label: '行銷部分配' },
-  { value: 'consultant_referral', label: '同事轉介' },
-  { value: 'external_referrer', label: '外部轉介人' },
-  { value: 'brand_introduction', label: '品牌介紹' },
-  { value: 'other', label: '其他' },
-] as const
 
 const CURRENT_DEGREE_LABELS: Record<(typeof CURRENT_DEGREE_VALUES)[number], string> = {
   high_school: '高中',
@@ -87,6 +85,7 @@ const TARGET_COUNTRY_LABELS: Record<(typeof TARGET_COUNTRY_VALUES)[number], stri
 function defaultValuesFor(
   initial: Partial<StudentInput> | undefined,
   fallbackConsultantId: string,
+  fallbackLeadSourceId: string,
 ): StudentInput {
   return {
     full_name: initial?.full_name ?? '',
@@ -103,7 +102,7 @@ function defaultValuesFor(
     target_degree: initial?.target_degree ?? null,
     target_major: initial?.target_major ?? null,
     target_intake: initial?.target_intake ?? null,
-    lead_source_type: initial?.lead_source_type ?? 'self_developed',
+    lead_source_id: initial?.lead_source_id ?? fallbackLeadSourceId,
     lead_source_user_id: initial?.lead_source_user_id ?? null,
     lead_source_referrer_id: initial?.lead_source_referrer_id ?? null,
     lead_source_note: initial?.lead_source_note ?? null,
@@ -122,29 +121,36 @@ export function StudentForm({
   currentUserRole,
   consultantOptions,
   referrerOptions,
+  leadSourceOptions,
   onSubmit,
 }: StudentFormProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const canPickConsultant = isManagerOrAdmin(currentUserRole)
 
+  // Default lead source: prefer 'self_developed' (the historical default),
+  // else first active option, else first option, else empty.
+  const fallbackLeadSourceId =
+    leadSourceOptions.find((o) => o.code === 'self_developed')?.id ?? leadSourceOptions[0]?.id ?? ''
+
   const form = useForm<StudentInput>({
     resolver: zodResolver(studentBaseSchema),
-    defaultValues: defaultValuesFor(initialValues, currentUserId),
+    defaultValues: defaultValuesFor(initialValues, currentUserId, fallbackLeadSourceId),
   })
 
-  const leadSourceType = form.watch('lead_source_type')
+  const leadSourceId = form.watch('lead_source_id')
+  const currentCode = leadSourceOptions.find((o) => o.id === leadSourceId)?.code
   const showInternalUserField =
-    leadSourceType === 'marketing_dept' || leadSourceType === 'consultant_referral'
+    currentCode === 'marketing_dept' || currentCode === 'consultant_referral'
   const showReferrerField =
-    leadSourceType === 'external_referrer' || leadSourceType === 'brand_introduction'
+    currentCode === 'external_referrer' || currentCode === 'brand_introduction'
 
-  // Clear the irrelevant field when type switches.
+  // Clear the irrelevant field when source switches.
   useEffect(() => {
     if (!showInternalUserField) form.setValue('lead_source_user_id', null)
     if (!showReferrerField) form.setValue('lead_source_referrer_id', null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leadSourceType])
+  }, [leadSourceId])
 
   const handleSubmit = form.handleSubmit((data) => {
     startTransition(async () => {
@@ -449,7 +455,7 @@ export function StudentForm({
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
-              name="lead_source_type"
+              name="lead_source_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -462,9 +468,9 @@ export function StudentForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {LEAD_SOURCE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
+                      {leadSourceOptions.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>
+                          {opt.label_zh}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -480,7 +486,7 @@ export function StudentForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {leadSourceType === 'marketing_dept' ? '行銷部同事' : '介紹同事'}
+                      {currentCode === 'marketing_dept' ? '行銷部同事' : '介紹同事'}
                     </FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
@@ -512,7 +518,7 @@ export function StudentForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {leadSourceType === 'brand_introduction' ? '介紹品牌' : '轉介人'}
+                      {currentCode === 'brand_introduction' ? '介紹品牌' : '轉介人'}
                     </FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}

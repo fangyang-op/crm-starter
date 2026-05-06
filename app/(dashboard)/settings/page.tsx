@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { ChevronRight, KeyRound, Package, UserSquare } from 'lucide-react'
+import { ChevronRight, KeyRound, ListTree, Package, UserSquare } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin, type UserRole } from '@/lib/constants/roles'
@@ -44,6 +44,25 @@ export default async function SettingsIndexPage() {
             </CardContent>
           </Card>
         </Link>
+
+        {isAdmin(role) ? (
+          <Link href="/settings/lead-sources">
+            <Card className="transition-colors hover:border-primary">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ListTree className="text-muted-foreground" size={20} />
+                  <CardTitle className="text-base">名單來源</CardTitle>
+                </div>
+                <ChevronRight className="text-muted-foreground" size={16} />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  學生來源類型(自開、行銷分配、外部轉介…)。Admin 可新增、改名、調順序、停用。
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : null}
 
         {isAdmin(role) ? (
           <Link href="/settings/plans">

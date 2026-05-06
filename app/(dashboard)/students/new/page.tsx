@@ -41,6 +41,24 @@ export default async function NewStudentPage() {
     type: r.type,
   }))
 
+  const { data: leadSources } = await supabase
+    .from('lead_sources' as never)
+    .select('id, code, label_zh')
+    .eq('is_active' as never, true as never)
+    .order('sort_order' as never, { ascending: true })
+
+  const leadSourceOptions = (
+    (leadSources ?? []) as unknown as Array<{
+      id: string
+      code: string
+      label_zh: string
+    }>
+  ).map((l) => ({
+    id: l.id,
+    code: l.code,
+    label_zh: l.label_zh,
+  }))
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-6">
       <header className="mb-6">
@@ -55,6 +73,7 @@ export default async function NewStudentPage() {
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
         referrerOptions={referrerOptions}
+        leadSourceOptions={leadSourceOptions}
         onSubmit={createStudent}
       />
     </div>

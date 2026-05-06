@@ -51,6 +51,24 @@ export default async function EditStudentPage({ params }: { params: { id: string
     type: r.type,
   }))
 
+  const { data: leadSources } = await supabase
+    .from('lead_sources' as never)
+    .select('id, code, label_zh')
+    .eq('is_active' as never, true as never)
+    .order('sort_order' as never, { ascending: true })
+
+  const leadSourceOptions = (
+    (leadSources ?? []) as unknown as Array<{
+      id: string
+      code: string
+      label_zh: string
+    }>
+  ).map((l) => ({
+    id: l.id,
+    code: l.code,
+    label_zh: l.label_zh,
+  }))
+
   const initialValues: Partial<StudentInput> = {
     full_name: student.full_name,
     english_name: student.english_name,
@@ -66,7 +84,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
     target_degree: student.target_degree as StudentInput['target_degree'],
     target_major: student.target_major,
     target_intake: student.target_intake,
-    lead_source_type: student.lead_source_type,
+    lead_source_id: (student as { lead_source_id?: string | null }).lead_source_id ?? '',
     lead_source_user_id: student.lead_source_user_id,
     lead_source_referrer_id: student.lead_source_referrer_id,
     lead_source_note: student.lead_source_note,
@@ -91,6 +109,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
         referrerOptions={referrerOptions}
+        leadSourceOptions={leadSourceOptions}
         onSubmit={updateThisStudent}
       />
     </div>

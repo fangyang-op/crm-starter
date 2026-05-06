@@ -146,11 +146,19 @@
      - 建立 / 編輯協定時,選了來源後,「轉介人」下拉選單只列出該來源關聯的轉介人
 - **DB 影響**:檢查 `lead_sources` 是否有 `is_active`、`default_referrer_id`;檢查 `referrers` 是否有 `default_split_percent`;確認是否需要 `lead_source_referrers` 中介表(多對多)
 - **驗收**:
-  - [ ] Admin 可新增 / 編輯 / 停用名單來源
-  - [ ] Admin 可新增 / 編輯 / 停用轉介人
-  - [ ] 兩者關聯維護正確
-  - [ ] 在學生新增畫面,選來源後轉介人下拉只顯示關聯的人
-- [ ] 完成
+  - [x] Admin 可新增 / 編輯 / 停用名單來源(`/settings/lead-sources` + `LeadSourceFormDialog` + SD `create_lead_source`/`update_lead_source`)
+  - [x] Admin 可新增 / 編輯 / 停用轉介人(referrer dialog 加 default_split_percent 欄位、6-arg SD variant)
+  - [x] 在學生新增畫面,名單來源下拉動態讀 `lead_sources`,顯示 `label_zh`(以 sort_order 排序、隱藏停用)
+  - [ ] 兩者關聯維護(M:N `lead_source_referrers` 表已建,UI 尚未做;此版只先做 `default_referrer_id` 一對一)
+- [x] 完成(M:N UI 後續再補)
+  - 重大 schema 變動(0022):
+    - 新表 `lead_sources`(code/label_zh/default_referrer_id/is_active/sort_order)+ seed 既有 6 個 enum 值
+    - `students.lead_source_id UUID NOT NULL FK` 替代 `students.lead_source_type`(資料已遷移、原欄位 + enum 已 DROP)
+    - `referrers.default_split_percent NUMERIC(5,2)`
+    - 預留 M:N `lead_source_referrers`
+    - 重新 emit 0007 的 `update_student` 改用 `lead_source_id`
+    - SD CRUD `create_lead_source`/`update_lead_source`(admin only,`_lead_source_authorize`)
+    - 6-arg `create_referrer` / 8-arg `update_referrer` 含 default_split_percent
 
 ### 1.2 帳號建立 + 權限設定
 - **位置**:`app/(dashboard)/settings/users/`

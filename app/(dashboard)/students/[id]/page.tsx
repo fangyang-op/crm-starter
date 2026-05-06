@@ -35,15 +35,6 @@ const CURRENT_DEGREE_LABELS: Record<string, string> = {
   other: '其他',
 }
 
-const LEAD_SOURCE_LABELS: Record<string, string> = {
-  self_developed: '自行開發',
-  marketing_dept: '行銷部分配',
-  consultant_referral: '同事轉介',
-  external_referrer: '外部轉介人',
-  brand_introduction: '品牌介紹',
-  other: '其他',
-}
-
 function fmt(value: string | number | null | undefined): React.ReactNode {
   if (value === null || value === undefined || value === '') {
     return <span className="text-muted-foreground">—</span>
@@ -100,6 +91,19 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           .eq('id', student.lead_source_referrer_id)
           .maybeSingle()
       ).data?.name ?? null)
+    : null
+
+  const leadSourceId = (student as { lead_source_id?: string | null }).lead_source_id
+  const leadSourceLabel = leadSourceId
+    ? ((
+        (
+          await supabase
+            .from('lead_sources' as never)
+            .select('label_zh')
+            .eq('id' as never, leadSourceId as never)
+            .maybeSingle()
+        ).data as unknown as { label_zh?: string } | null
+      )?.label_zh ?? null)
     : null
 
   const role = me.role as UserRole
@@ -251,7 +255,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               </CardHeader>
               <CardContent className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
                 <span className="text-muted-foreground">來源類型</span>
-                {fmt(LEAD_SOURCE_LABELS[student.lead_source_type] ?? student.lead_source_type)}
+                {fmt(leadSourceLabel)}
                 {student.lead_source_user_id ? (
                   <>
                     <span className="text-muted-foreground">來源同事</span>

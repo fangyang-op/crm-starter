@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import {
   Select,
   SelectContent,
@@ -62,6 +63,7 @@ export function ReferrerFormDialog({ mode, initial, trigger }: ReferrerFormDialo
       type: initial?.type ?? 'individual',
       contact_email: initial?.contact_email ?? null,
       contact_phone: initial?.contact_phone ?? null,
+      default_split_percent: initial?.default_split_percent ?? null,
       notes: initial?.notes ?? null,
       is_active: initial?.is_active ?? true,
     },
@@ -173,6 +175,24 @@ export function ReferrerFormDialog({ mode, initial, trigger }: ReferrerFormDialo
                     <FormLabel>電話</FormLabel>
                     <FormControl>
                       <Input {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="default_split_percent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>預設拆分 %</FormLabel>
+                    <FormControl>
+                      <NumberInput
+                        decimal
+                        value={field.value ?? ''}
+                        onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                        placeholder="例:35"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

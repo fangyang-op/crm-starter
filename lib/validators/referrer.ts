@@ -19,6 +19,12 @@ export const referrerSchema = z.object({
     .optional()
     .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'email 格式錯誤'),
   contact_phone: z.string().max(50).nullable().optional(),
+  default_split_percent: z
+    .number()
+    .min(0, '不能為負數')
+    .max(100, '不能超過 100')
+    .nullable()
+    .optional(),
   notes: z.string().max(2000).nullable().optional(),
   is_active: z.boolean(),
 })

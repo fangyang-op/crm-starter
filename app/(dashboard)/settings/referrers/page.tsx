@@ -106,6 +106,9 @@ export default async function ReferrersPage() {
                           type: r.type as never,
                           contact_email: r.contact_email,
                           contact_phone: r.contact_phone,
+                          default_split_percent:
+                            (r as { default_split_percent?: number | null })
+                              .default_split_percent ?? null,
                           notes: r.notes,
                           is_active: r.is_active,
                         }}

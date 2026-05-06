@@ -1,14 +1,5 @@
 import { z } from 'zod'
 
-export const LEAD_SOURCE_VALUES = [
-  'self_developed',
-  'marketing_dept',
-  'consultant_referral',
-  'external_referrer',
-  'brand_introduction',
-  'other',
-] as const
-
 export const TARGET_COUNTRY_VALUES = ['US', 'UK', 'CA', 'AU', 'Other'] as const
 export const TARGET_DEGREE_VALUES = [
   'bachelor',
@@ -46,7 +37,7 @@ export const studentBaseSchema = z.object({
   target_major: optionalString(200),
   target_intake: optionalString(100),
 
-  lead_source_type: z.enum(LEAD_SOURCE_VALUES),
+  lead_source_id: z.string().uuid('請選擇名單來源'),
   lead_source_user_id: z.string().uuid('UUID 格式錯誤').nullable().optional(),
   lead_source_referrer_id: z.string().uuid('UUID 格式錯誤').nullable().optional(),
   lead_source_note: optionalString(500),
