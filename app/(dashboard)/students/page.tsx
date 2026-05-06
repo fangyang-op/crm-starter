@@ -2,17 +2,10 @@ import Link from 'next/link'
 
 import { Plus } from 'lucide-react'
 
-import { StatusBadge } from '@/components/shared/status-badge'
+import { StudentsListRow } from '@/components/students/students-list-row'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   STUDENT_STATUS_CONFIG,
   STUDENT_STATUS_VALUES,
@@ -152,37 +145,23 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
                       .filter(Boolean)
                       .join(' · ') || '—'
                   return (
-                    <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        <Link href={`/students/${s.id}`} className="hover:underline">
-                          {s.full_name}
-                          {s.english_name ? (
-                            <span className="ml-2 text-xs font-normal text-muted-foreground">
-                              {s.english_name}
-                            </span>
-                          ) : null}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={s.status} size="sm" />
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {s.frontend_consultant_id
-                          ? (profileMap.get(s.frontend_consultant_id) ?? '—')
-                          : '—'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {s.backend_consultant_id
-                          ? (profileMap.get(s.backend_consultant_id) ?? '—')
-                          : '—'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{target}</TableCell>
-                      <TableCell className="text-right text-xs text-muted-foreground">
-                        {new Date(s.created_at).toLocaleDateString('zh-TW', {
-                          timeZone: 'Asia/Taipei',
-                        })}
-                      </TableCell>
-                    </TableRow>
+                    <StudentsListRow
+                      key={s.id}
+                      student={{
+                        id: s.id,
+                        full_name: s.full_name,
+                        english_name: s.english_name,
+                        status: s.status as StudentStatus,
+                        frontend_consultant_name: s.frontend_consultant_id
+                          ? (profileMap.get(s.frontend_consultant_id) ?? null)
+                          : null,
+                        backend_consultant_name: s.backend_consultant_id
+                          ? (profileMap.get(s.backend_consultant_id) ?? null)
+                          : null,
+                        target,
+                        created_at: s.created_at,
+                      }}
+                    />
                   )
                 })}
               </TableBody>

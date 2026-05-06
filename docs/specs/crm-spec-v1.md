@@ -231,10 +231,10 @@
   >
   ```
 - **驗收**:
-  - [ ] 點任一格(空白、姓名、狀態、Email)都能進詳細頁
-  - [ ] 行內操作按鈕仍可獨立點擊,不觸發列導航
-  - [ ] hover 有視覺回饋
-- [ ] 完成
+  - [x] 點任一格(空白、姓名、狀態、Email)都能進詳細頁
+  - [x] 行內操作按鈕仍可獨立點擊,不觸發列導航(目前無 inline button,但 Link 用 stopPropagation 預防雙觸發)
+  - [x] hover 有視覺回饋(`bg-muted/50`)
+- [x] 完成 — 抽出 `components/students/students-list-row.tsx`(client),server page 改傳 plain data;支援 Enter/Space 鍵觸發 + 右鍵新分頁(內層 Link 保留)
 
 ### 2.2 學生狀態改為下拉(連動 1.3)
 - **位置**:
