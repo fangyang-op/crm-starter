@@ -9,6 +9,7 @@ import { StudentDocuments } from '@/components/students/student-documents'
 import { StudentSchools } from '@/components/students/student-schools'
 import { StudentStatusChanger } from '@/components/students/student-status-changer'
 import { StudentTimeline } from '@/components/students/student-timeline'
+import { WordQuotaCard } from '@/components/students/word-quota-card'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -175,6 +176,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
+          <WordQuotaCard
+            studentId={student.id}
+            studentName={student.full_name}
+            canAddBonus={isManagerOrAdmin(role) || student.frontend_consultant_id === user.id}
+          />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
