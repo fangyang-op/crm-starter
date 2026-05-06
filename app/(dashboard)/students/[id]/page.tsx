@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
 import { StudentDeals } from '@/components/students/student-deals'
+import { StudentSchools } from '@/components/students/student-schools'
 import { StudentStatusChanger } from '@/components/students/student-status-changer'
 import { StudentTimeline } from '@/components/students/student-timeline'
 import { Button } from '@/components/ui/button'
@@ -294,7 +295,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           />
         </TabsContent>
         <TabsContent value="schools">
-          <PhasePlaceholder phase="2" hint="多版本選校表,鎖定後展開為申請項目" />
+          <StudentSchools studentId={student.id} canEdit={canChangeStatus} />
         </TabsContent>
         <TabsContent value="documents">
           <PhasePlaceholder phase="3" hint="文件 Master / Variant 版本管理 + 字數帳本" />

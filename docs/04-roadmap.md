@@ -157,13 +157,13 @@
 - [x] `school_programs` 子表 CRUD(`create_school_program` / `update_school_program` SD 函式)
 
 ### 2.2 選校表(學生主頁分頁)
-- [ ] `students/[id]/schools/` — 選校表分頁
-- [ ] 「新建版本」按鈕(複製當前版本)
-- [ ] 版本切換 dropdown
-- [ ] 加入學校(從 schools 搜尋)
-- [ ] 拖拉排序 + 設定 tier(reach/match/safety/dream)
-- [ ] 鎖定版本(`is_locked = true`,鎖後不可改)
-- [ ] 設為當前版本(`is_current = true`)
+- [x] 學生 detail page schools tab(`<StudentSchools>` server 元件抓 lists + items)
+- [x] 「新建版本」按鈕,可選複製來源(`create_school_list` SD 函式 / migration 0013)
+- [x] 版本切換 dropdown(顯示 V_n + name + 當前/鎖定旗標)
+- [x] 加入學校(從 schools 搜尋,按學校過濾科系下拉,設 tier + 備註)
+- [x] **上 / 下移**排序(取代拖拉,MVP 用 ArrowUp/ArrowDown 按鈕互換 display_order;拖拉留作後續)+ 設定 tier(dream / reach / match / safety)
+- [x] 鎖定版本(`is_locked = true`,鎖後不可改;UI 改成唯讀;沒 unlock 函式,需要 admin SQL 解鎖)
+- [x] 設為當前版本(`is_current = true`,`set_current_school_list` 自動 unset 其他)
 
 ✅ **Phase 2 完成標準**:可建立多版選校表、可滾動式調整、可鎖定確認版。
 

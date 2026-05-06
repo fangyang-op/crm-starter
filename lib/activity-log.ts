@@ -88,12 +88,28 @@ export function formatActivity(activity: ActivityRow, actorName?: string): Activ
         iconClass: 'text-amber-700',
         description: activity.description ?? `${actor} 編輯了成交`,
       }
-    case 'school_list_locked':
+    case 'school_list_created': {
+      const version = payload.version
+      return {
+        icon: GitFork,
+        iconClass: 'text-indigo-600',
+        description:
+          typeof version === 'number'
+            ? `${actor} 建立了選校表 V${version}`
+            : (activity.description ?? `${actor} 建立了選校表`),
+      }
+    }
+    case 'school_list_locked': {
+      const version = payload.version
       return {
         icon: Lock,
         iconClass: 'text-cyan-600',
-        description: activity.description ?? `${actor} 鎖定選校表`,
+        description:
+          typeof version === 'number'
+            ? `${actor} 鎖定了選校表 V${version}`
+            : (activity.description ?? `${actor} 鎖定選校表`),
       }
+    }
     case 'application_submitted':
       return {
         icon: Send,
