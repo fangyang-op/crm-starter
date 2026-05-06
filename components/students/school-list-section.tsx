@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 
-import { ArrowDown, ArrowUp, Lock, LockKeyhole, Plus, Star, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ListTree, Lock, LockKeyhole, Plus, Star, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AddSchoolToListDialog } from '@/components/students/add-school-to-list-dialog'
@@ -45,6 +45,7 @@ import { TIER_BADGE_CLASS, TIER_LABELS, TIER_VALUES, type Tier } from '@/lib/con
 
 import {
   createSchoolList,
+  expandSchoolListToApplications,
   lockSchoolList,
   removeSchoolListItem,
   setCurrentSchoolList,
@@ -72,6 +73,7 @@ export type SchoolListVersion = {
   is_current: boolean
   created_at: string
   items: SchoolListItem[]
+  expanded_count: number
 }
 
 export type SchoolOption = {
@@ -169,6 +171,24 @@ export function SchoolListSection({
     })
   }
 
+  const handleExpand = () => {
+    startTransition(async () => {
+      const r = await expandSchoolListToApplications(studentId, selected.id)
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      if (r.created === 0 && r.skipped > 0) {
+        toast.success(`本版 ${r.total} 校全部已展開過,沒有新建申請`)
+      } else if (r.skipped > 0) {
+        toast.success(`已展開 ${r.created} 筆申請(略過 ${r.skipped} 筆已存在)`)
+      } else {
+        toast.success(`已展開 ${r.created} 筆申請`)
+      }
+      router.refresh()
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
@@ -199,6 +219,11 @@ export function SchoolListSection({
               已鎖定
             </Badge>
           ) : null}
+          {selected.is_locked && selected.items.length > 0 ? (
+            <Badge variant="outline" className="text-xs">
+              已展開 {selected.expanded_count}/{selected.items.length} 校
+            </Badge>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && !selected.is_current ? (
@@ -209,6 +234,14 @@ export function SchoolListSection({
           ) : null}
           {canEdit && !selected.is_locked ? (
             <ConfirmLockDialog onConfirm={handleLock} pending={pending} />
+          ) : null}
+          {canEdit && selected.is_locked && selected.items.length > 0 ? (
+            <ConfirmExpandDialog
+              total={selected.items.length}
+              expanded={selected.expanded_count}
+              onConfirm={handleExpand}
+              pending={pending}
+            />
           ) : null}
           {canEdit ? (
             <NewVersionDialog
@@ -532,6 +565,49 @@ function NewVersionDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function ConfirmExpandDialog({
+  total,
+  expanded,
+  onConfirm,
+  pending,
+}: {
+  total: number
+  expanded: number
+  onConfirm: () => void
+  pending: boolean
+}) {
+  const remaining = total - expanded
+  const allDone = remaining === 0
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="default" size="sm" disabled={pending}>
+          <ListTree size={14} className="mr-1" />
+          {allDone ? '全部已展開' : '展開為申請項'}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {allDone ? '本版選校已全部展開' : `展開 ${remaining} 校為申請項`}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {allDone
+              ? '本版的所有學校都已建立對應的申請紀錄。再按一次「展開」不會新增任何資料。'
+              : `本版共 ${total} 校,已有 ${expanded} 校建立申請。剩下 ${remaining} 校將以「待寄出 (pending_send)」狀態建立 applications。已存在的不會重複建立。`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>取消</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={pending}>
+            {allDone ? '我知道了' : '展開'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

@@ -210,8 +210,11 @@
 ## Phase 4:申請追蹤 + 成績 + 佣金(1 週)
 
 ### 4.1 從選校表展開申請
-- [ ] 選校表 V_n 鎖定後 → 「展開為申請項」按鈕
-- [ ] 為每個 list_item 建立一筆 `applications`(預設 `pending_send`)
+- [x] 選校表 V_n 鎖定後 → 「展開為申請項」按鈕(SD function `expand_school_list_to_applications`,migration 0018)
+- [x] 為每個 list_item 建立一筆 `applications`(預設 `pending_send`,複製 `school_id`/`program_id`/`program_name_override`,設 `source_school_list_item_id`)
+- [x] Idempotent:同學生若已有相同 (school_id, program_id) 的 application 則跳過(`IS NOT DISTINCT FROM` 處理 NULL program)
+- [x] 寫 activity_log(`applications_expanded`,payload 含 `created`/`skipped`/`total`)
+- [x] UI 顯示「已展開 X/Y 校」徽章 + 確認 dialog(視餘量改文案,全部已展開時 disable 為提示)
 
 ### 4.2 申請追蹤
 - [ ] `students/[id]/applications/` — 申請列表(看板式 + 列表切換)

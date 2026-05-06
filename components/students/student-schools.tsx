@@ -16,22 +16,30 @@ type Props = {
 export async function StudentSchools({ studentId, canEdit }: Props) {
   const supabase = createClient()
 
-  const [{ data: lists }, { data: schools }, { data: programs }] = await Promise.all([
-    supabase
-      .from('school_lists')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('version_number', { ascending: false }),
-    supabase
-      .from('schools')
-      .select('id, name_en, name_zh, short_name, country')
-      .eq('is_active', true)
-      .order('name_en'),
-    supabase
-      .from('school_programs')
-      .select('id, school_id, program_name, degree_level')
-      .order('program_name'),
-  ])
+  const [{ data: lists }, { data: schools }, { data: programs }, { data: applications }] =
+    await Promise.all([
+      supabase
+        .from('school_lists')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('version_number', { ascending: false }),
+      supabase
+        .from('schools')
+        .select('id, name_en, name_zh, short_name, country')
+        .eq('is_active', true)
+        .order('name_en'),
+      supabase
+        .from('school_programs')
+        .select('id, school_id, program_name, degree_level')
+        .order('program_name'),
+      supabase.from('applications').select('school_id, program_id').eq('student_id', studentId),
+    ])
+
+  // Build a set of (school_id|program_id) pairs the student already has
+  // applications for, so the section can show "expanded X/Y" per list.
+  const expandedKeys = new Set(
+    (applications ?? []).map((a) => `${a.school_id}|${a.program_id ?? ''}`),
+  )
 
   const listIds = (lists ?? []).map((l) => l.id)
   type RawItem = {
@@ -73,15 +81,22 @@ export async function StudentSchools({ studentId, canEdit }: Props) {
     itemsByList.set(it.school_list_id, arr)
   }
 
-  const versions: SchoolListVersion[] = (lists ?? []).map((l) => ({
-    id: l.id,
-    version_number: l.version_number,
-    name: l.name,
-    is_locked: l.is_locked,
-    is_current: l.is_current,
-    created_at: l.created_at,
-    items: itemsByList.get(l.id) ?? [],
-  }))
+  const versions: SchoolListVersion[] = (lists ?? []).map((l) => {
+    const listItems = itemsByList.get(l.id) ?? []
+    const expandedCount = listItems.filter((it) =>
+      expandedKeys.has(`${it.school_id}|${it.program_id ?? ''}`),
+    ).length
+    return {
+      id: l.id,
+      version_number: l.version_number,
+      name: l.name,
+      is_locked: l.is_locked,
+      is_current: l.is_current,
+      created_at: l.created_at,
+      items: listItems,
+      expanded_count: expandedCount,
+    }
+  })
 
   const schoolOptions: SchoolOption[] = (schools ?? []).map((s) => ({
     id: s.id,

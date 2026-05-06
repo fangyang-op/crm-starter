@@ -168,3 +168,30 @@ export async function removeSchoolListItem(
   revalidatePath(`/students/${studentId}`)
   return { ok: true, id: itemId }
 }
+
+export type ExpandSchoolListResult =
+  | { ok: true; created: number; skipped: number; total: number }
+  | { ok: false; error: string }
+
+export async function expandSchoolListToApplications(
+  studentId: string,
+  listId: string,
+): Promise<ExpandSchoolListResult> {
+  if (!listId) return { ok: false, error: '缺少 list id' }
+
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc(
+    'expand_school_list_to_applications' as never,
+    {
+      p_list_id: listId,
+    } as never,
+  )
+
+  if (error) {
+    return { ok: false, error: `展開失敗:${(error as { message: string }).message}` }
+  }
+
+  const payload = data as unknown as { created: number; skipped: number; total: number }
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true, created: payload.created, skipped: payload.skipped, total: payload.total }
+}
