@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -404,12 +405,12 @@ export function DealFormSheet({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="extra-school">加購學校數</Label>
-              <Input
+              <NumberInput
                 id="extra-school"
-                type="number"
-                min={0}
+                decimal={false}
                 value={extraSchool}
-                onChange={(e) => setExtraSchool(Math.max(0, Number(e.target.value || 0)))}
+                onValueChange={(v) => setExtraSchool(Math.max(0, Number(v || 0)))}
+                placeholder="0"
               />
               <p className="text-xs text-muted-foreground">
                 單價 {extraSchoolPrice.toLocaleString('zh-TW')}
@@ -417,13 +418,12 @@ export function DealFormSheet({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="extra-word">加購字數</Label>
-              <Input
+              <NumberInput
                 id="extra-word"
-                type="number"
-                min={0}
-                step={1000}
+                decimal={false}
                 value={extraWord}
-                onChange={(e) => setExtraWord(Math.max(0, Number(e.target.value || 0)))}
+                onValueChange={(v) => setExtraWord(Math.max(0, Number(v || 0)))}
+                placeholder="0"
               />
               <p className="text-xs text-muted-foreground">
                 每 1000 字 {extraWordPricePer1000.toLocaleString('zh-TW')}
@@ -435,12 +435,12 @@ export function DealFormSheet({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="discount">優惠金額</Label>
-              <Input
+              <NumberInput
                 id="discount"
-                type="number"
-                min={0}
+                decimal={false}
                 value={discount}
-                onChange={(e) => setDiscount(Math.max(0, Number(e.target.value || 0)))}
+                onValueChange={(v) => setDiscount(Math.max(0, Number(v || 0)))}
+                placeholder="0"
               />
             </div>
             <div className="space-y-1.5">
@@ -558,16 +558,15 @@ export function DealFormSheet({
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">%</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
+                <NumberInput
+                  decimal={false}
                   value={primaryPct}
-                  onChange={(e) => {
-                    const v = Math.max(0, Math.min(100, Number(e.target.value || 0)))
+                  onValueChange={(s) => {
+                    const v = Math.max(0, Math.min(100, Number(s || 0)))
                     setPrimaryPct(v)
                     if (hasReferrer) setReferrerPct(100 - v)
                   }}
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -639,16 +638,15 @@ export function DealFormSheet({
                       </Select>
                     )}
                   </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
+                  <NumberInput
+                    decimal={false}
                     value={referrerPct}
-                    onChange={(e) => {
-                      const v = Math.max(0, Math.min(100, Number(e.target.value || 0)))
+                    onValueChange={(s) => {
+                      const v = Math.max(0, Math.min(100, Number(s || 0)))
                       setReferrerPct(v)
                       setPrimaryPct(100 - v)
                     }}
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -682,20 +680,17 @@ export function DealFormSheet({
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">%(額外)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
+                  <NumberInput
+                    decimal={false}
                     value={b.percentage}
-                    onChange={(e) =>
+                    onValueChange={(v) =>
                       setBonusRows((rows) =>
                         rows.map((r, i) =>
-                          i === idx
-                            ? { ...r, percentage: Math.max(0, Number(e.target.value || 0)) }
-                            : r,
+                          i === idx ? { ...r, percentage: Math.max(0, Number(v || 0)) } : r,
                         ),
                       )
                     }
+                    placeholder="0"
                   />
                 </div>
                 <Button

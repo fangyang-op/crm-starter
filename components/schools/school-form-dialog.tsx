@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import {
   Select,
   SelectContent,
@@ -237,15 +238,11 @@ export function SchoolFormDialog({ mode, initial, trigger }: Props) {
                   <FormItem>
                     <FormLabel>QS Ranking</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={9999}
-                        {...field}
+                      <NumberInput
+                        decimal={false}
                         value={field.value ?? ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                        }
+                        onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                        placeholder="例:50"
                       />
                     </FormControl>
                     <FormMessage />
@@ -259,15 +256,11 @@ export function SchoolFormDialog({ mode, initial, trigger }: Props) {
                   <FormItem>
                     <FormLabel>US News Ranking</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={9999}
-                        {...field}
+                      <NumberInput
+                        decimal={false}
                         value={field.value ?? ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                        }
+                        onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                        placeholder="例:50"
                       />
                     </FormControl>
                     <FormMessage />
@@ -302,16 +295,11 @@ export function SchoolFormDialog({ mode, initial, trigger }: Props) {
                     <FormItem>
                       <FormLabel>回傭率(%)</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step="0.01"
-                          {...field}
+                        <NumberInput
+                          decimal
                           value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                          }
+                          onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                          placeholder="例:8.5"
                         />
                       </FormControl>
                       <FormMessage />

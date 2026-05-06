@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import {
   Select,
   SelectContent,
@@ -325,15 +326,12 @@ export function StudentForm({
                 <FormItem>
                   <FormLabel>畢業年份</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min={1980}
-                      max={2050}
-                      {...field}
+                    <NumberInput
+                      decimal={false}
+                      blankOnZero={false}
                       value={field.value ?? ''}
-                      onChange={(e) =>
-                        field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                      }
+                      onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                      placeholder="例:2024"
                     />
                   </FormControl>
                   <FormMessage />

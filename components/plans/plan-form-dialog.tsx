@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   PLAN_COUNTRY_VALUES,
@@ -177,13 +178,11 @@ export function PlanFormDialog({ mode, initial, trigger }: Props) {
                       基礎價格 <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        {...field}
+                      <NumberInput
+                        decimal
                         value={field.value ?? 0}
-                        onChange={(e) => field.onChange(Number(e.target.value || 0))}
+                        onValueChange={(v) => field.onChange(Number(v || 0))}
+                        placeholder="0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -210,12 +209,11 @@ export function PlanFormDialog({ mode, initial, trigger }: Props) {
                   <FormItem>
                     <FormLabel>顯示順序</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
+                      <NumberInput
+                        decimal={false}
                         value={field.value ?? 0}
-                        onChange={(e) => field.onChange(Number(e.target.value || 0))}
+                        onValueChange={(v) => field.onChange(Number(v || 0))}
+                        placeholder="0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -231,14 +229,11 @@ export function PlanFormDialog({ mode, initial, trigger }: Props) {
                   <FormItem>
                     <FormLabel>含學校數</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
+                      <NumberInput
+                        decimal={false}
                         value={field.value ?? ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                        }
+                        onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                        placeholder="0"
                       />
                     </FormControl>
                     <FormMessage />
@@ -252,14 +247,11 @@ export function PlanFormDialog({ mode, initial, trigger }: Props) {
                   <FormItem>
                     <FormLabel>含字數</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        {...field}
+                      <NumberInput
+                        decimal={false}
                         value={field.value ?? ''}
-                        onChange={(e) =>
-                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
-                        }
+                        onValueChange={(v) => field.onChange(v === '' ? null : Number(v))}
+                        placeholder="0"
                       />
                     </FormControl>
                     <FormMessage />

@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
@@ -132,13 +133,11 @@ export function WordQuotaLedgerSheet({
                   <Label htmlFor="bonus-amount" className="text-xs">
                     數量
                   </Label>
-                  <Input
+                  <NumberInput
                     id="bonus-amount"
-                    type="number"
-                    min={1}
-                    step={500}
+                    decimal={false}
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onValueChange={setAmount}
                     placeholder="3000"
                     disabled={pending}
                   />

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -283,13 +284,11 @@ function MetaBlock({
           <Label htmlFor="fee" className="text-xs">
             申請費(USD)
           </Label>
-          <Input
+          <NumberInput
             id="fee"
-            type="number"
-            min={0}
-            step="0.01"
+            decimal
             value={fee}
-            onChange={(e) => setFee(e.target.value)}
+            onValueChange={setFee}
             placeholder="例:90"
             disabled={readOnly || pending}
           />
@@ -704,13 +703,11 @@ function TuitionBlock({ studentId, app }: { studentId: string; app: ApplicationR
           <Label htmlFor="tuition-amount" className="text-xs">
             金額
           </Label>
-          <Input
+          <NumberInput
             id="tuition-amount"
-            type="number"
-            min={0}
-            step="0.01"
+            decimal
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onValueChange={setAmount}
             placeholder="例:55000"
             disabled={pending}
           />
@@ -816,14 +813,13 @@ function CommissionBlock({ studentId, app }: { studentId: string; app: Applicati
           <Label htmlFor="commission-actual" className="text-xs">
             實收金額
           </Label>
-          <Input
+          <NumberInput
             id="commission-actual"
-            type="number"
-            min={0}
-            step="0.01"
+            decimal
             value={actualAmount}
-            onChange={(e) => setActualAmount(e.target.value)}
+            onValueChange={setActualAmount}
             disabled={pending}
+            placeholder="0"
           />
         </div>
         <div className="space-y-1">
