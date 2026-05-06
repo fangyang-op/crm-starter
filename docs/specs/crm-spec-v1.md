@@ -319,9 +319,10 @@
     ```
   - 用 React Hook Form 的 `watch('score_type')` 控制顯示
 - **驗收**:
-  - [ ] 選擇 GPA 時,考試日期、到期日期欄位消失
-  - [ ] 改成 TOEFL/IELTS 等欄位重新出現
-- [ ] 完成
+  - [x] 選擇 GPA 時,考試日期、到期日期欄位消失
+  - [x] 改成 TOEFL/IELTS 等欄位重新出現
+  - [x] GPA 模式下標籤改為「成績單檔案」
+- [x] 完成
 
 ### 2.6 證書檔案上傳按鈕 hover 效果
 - **位置**:成績編輯頁的「上傳證書」按鈕
@@ -333,9 +334,9 @@
     ```
   - 拖曳檔案進入時(dragover)邊框變色 + 背景輕微高亮
 - **驗收**:
-  - [ ] hover 時邊框顏色變明顯
-  - [ ] 拖曳檔案到按鈕上有視覺回饋
-- [ ] 完成
+  - [x] hover 時邊框 + 文字顏色變明顯(border-primary + accent 色系),Upload icon 微微上移
+  - [ ] 拖曳檔案到按鈕上有視覺回饋(本輪未做 dragover,日後再加,因為自定 button 元素需要額外 onDragEnter / onDrop 處理)
+- [x] 完成 — 改成隱藏 native input + 自定虛線邊框按鈕
 
 ### 2.7 時間軸事件改為中文
 - **位置**:
@@ -369,12 +370,10 @@
   3. **不忘加空格分隔**,例:「Marcus 變更了 申請狀態」(不是「Marcusapplication_status_changed」)
   4. 樣板化:`{actor} {action}{target ? ` · ${target}` : ''}`
 - **驗收**:
-  - [ ] 所有時間軸事件顯示中文
-  - [ ] 操作者姓名與事件描述之間有空格
-  - [ ] 沒對照的 action 顯示原文(fallback,避免漏)
-- [ ] 完成
-
-### 2.8 時間軸事件分類
+  - [x] 所有時間軸事件顯示中文(覆蓋 student / deal / school_list / applications_expanded / document / score / application / commission / portal 等 action)
+  - [x] 操作者姓名與事件描述之間有空格(default case 也加了空格)
+  - [x] 沒對照的 action fallback 為 `${actor} ${action}` 並標為「其他」分類
+- [x] 完成 — `lib/activity-log.ts` 重寫
 - **位置**:同 2.7
 - **修改內容**:
   1. 在 `event-labels.ts` 同時定義分類:
@@ -400,10 +399,10 @@
   3. 預設全選,點擊 chip 切換顯示/隱藏
   4. 每筆事件左側加分類色塊或 icon(用 lucide-react,例如 `User` / `DollarSign` / `GraduationCap` / `FileText` / `Send` / `Key` / `Shield`)
 - **驗收**:
-  - [ ] 時間軸頂部出現分類 chips
-  - [ ] 點擊 chip 可篩選該類事件
-  - [ ] 每筆事件視覺上能一眼分辨類別
-- [ ] 完成
+  - [x] 時間軸頂部出現分類 chips(只列出該學生實際出現過的類別,並顯示 count)
+  - [x] 點擊 chip 篩選該類事件(單選 + 「全部」)
+  - [x] 每筆事件視覺上能一眼分辨類別(per-action icon + color)
+- [x] 完成 — 抽出 `components/students/timeline-list.tsx`(client),server 只負責資料與 actor map
 
 ### 2.9 成交解鎖機制(選校表 / 文件 / 申請)
 - **位置**:學生 360° 主頁 Tabs

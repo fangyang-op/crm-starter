@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
-import { FileText, Paperclip, Trash2, X } from 'lucide-react'
+import { FileText, Paperclip, Trash2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -82,6 +82,10 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
 
   const cfg = SCORE_TYPE_CONFIG[scoreType]
   const subFieldKeys = useMemo(() => cfg.subFields.map((f) => f.key), [cfg.subFields])
+  // GPA has no exam date / expiry semantics — the score is for the whole
+  // transcript, not a single exam sitting. Keep the form lean.
+  const hasDates = scoreType !== 'gpa'
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubChange = (key: string, value: string) => {
     setSubScores((prev) => ({ ...prev, [key]: value }))
@@ -195,32 +199,34 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="test-date" className="text-xs">
-                考試日期
-              </Label>
-              <Input
-                id="test-date"
-                type="date"
-                value={testDate}
-                onChange={(e) => setTestDate(e.target.value)}
-                disabled={pending}
-              />
+          {hasDates ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="test-date" className="text-xs">
+                  考試日期
+                </Label>
+                <Input
+                  id="test-date"
+                  type="date"
+                  value={testDate}
+                  onChange={(e) => setTestDate(e.target.value)}
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="expiry-date" className="text-xs">
+                  到期日期
+                </Label>
+                <Input
+                  id="expiry-date"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  disabled={pending}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="expiry-date" className="text-xs">
-                到期日期
-              </Label>
-              <Input
-                id="expiry-date"
-                type="date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                disabled={pending}
-              />
-            </div>
-          </div>
+          ) : null}
 
           <div className="flex items-center gap-2">
             <Checkbox
@@ -235,11 +241,11 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">證書檔案</Label>
+            <Label className="text-xs">{scoreType === 'gpa' ? '成績單檔案' : '證書檔案'}</Label>
             {hasExistingCert ? (
               <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
                 <FileText size={14} className="text-muted-foreground" />
-                <span className="flex-1 truncate">已上傳證書</span>
+                <span className="flex-1 truncate">已上傳檔案</span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -271,7 +277,7 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
             ) : null}
             {!file && removeCert ? (
               <p className="rounded-md bg-rose-50 px-2 py-1.5 text-xs text-rose-700">
-                儲存後將移除目前的證書。
+                儲存後將移除目前的檔案。
                 <button
                   type="button"
                   className="ml-2 underline"
@@ -282,15 +288,29 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
               </p>
             ) : null}
             {!file && !hasExistingCert && !removeCert ? (
-              <Input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,application/pdf"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                disabled={pending}
-              />
+              <>
+                {/* Hidden native input — the custom button below triggers it.
+                    Native file inputs can't carry hover styling reliably. */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  disabled={pending}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={pending}
+                  className="group flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-input bg-background px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Upload size={16} className="transition-transform group-hover:-translate-y-0.5" />
+                  <span>選擇檔案 (PNG / JPEG / WebP / PDF,最大 10MB)</span>
+                </button>
+              </>
             ) : null}
-            {(file || removeCert) && hasExistingCert === false ? null : null}
-            {file ? <p className="text-[11px] text-muted-foreground">將取代現有證書</p> : null}
+            {file ? <p className="text-[11px] text-muted-foreground">將取代現有檔案</p> : null}
           </div>
 
           <div className="space-y-1">
