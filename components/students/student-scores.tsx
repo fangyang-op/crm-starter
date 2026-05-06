@@ -14,7 +14,7 @@ export async function StudentScores({ studentId, canEdit }: Props) {
     .from('academic_scores')
     .select(
       'id, score_type, total_score, sub_scores, test_date, expiry_date, ' +
-        'is_official, notes, certificate_storage_path, created_at',
+        'is_official, notes, certificate_storage_path, created_at, status',
     )
     .eq('student_id', studentId)
     .order('test_date', { ascending: false, nullsFirst: false })
@@ -31,6 +31,7 @@ export async function StudentScores({ studentId, canEdit }: Props) {
     notes: string | null
     certificate_storage_path: string | null
     created_at: string
+    status: string | null
   }>
   const scores: ScoreListItem[] = raw.map((r) => ({
     id: r.id,
@@ -43,7 +44,27 @@ export async function StudentScores({ studentId, canEdit }: Props) {
     notes: r.notes,
     certificate_storage_path: r.certificate_storage_path,
     created_at: r.created_at,
+    status: (r.status as 'preliminary' | 'confirmed' | null) ?? 'confirmed',
   }))
 
-  return <ScoreList studentId={studentId} scores={scores} canEdit={canEdit} />
+  // Front-end consultants can't edit scores (the SD function rejects them
+  // anyway). We also pull the user's department here so the score card UI
+  // hides the buttons for them, instead of showing a button that always toasts.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  let isFrontendConsultant = false
+  if (user) {
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('role, department')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (me && me.role === 'consultant' && me.department === 'frontend') {
+      isFrontendConsultant = true
+    }
+  }
+  const effectiveCanEdit = canEdit && !isFrontendConsultant
+
+  return <ScoreList studentId={studentId} scores={scores} canEdit={effectiveCanEdit} />
 }

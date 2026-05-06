@@ -43,6 +43,7 @@ export type ScoreListItem = {
   notes: string | null
   certificate_storage_path: string | null
   created_at: string
+  status: 'preliminary' | 'confirmed'
 }
 
 type Props = {
@@ -165,6 +166,14 @@ function ScoreCard({
             <Badge variant="outline" className={cn('border', cfg.badgeClass)}>
               {cfg.label}
             </Badge>
+            {score.status === 'preliminary' ? (
+              <Badge
+                variant="outline"
+                className="border-amber-300 bg-amber-50 text-[10px] text-amber-700"
+              >
+                初步
+              </Badge>
+            ) : null}
             {score.is_official ? (
               <Badge variant="outline" className="text-[10px]">
                 正本送分

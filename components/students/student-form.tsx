@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { NumberInput } from '@/components/ui/number-input'
 import {
   Select,
@@ -37,7 +38,7 @@ import {
   type StudentInput,
 } from '@/lib/validators/student'
 
-import type { ActionResult } from '@/app/(dashboard)/students/actions'
+import type { ActionResult, PreliminaryScoreInput } from '@/app/(dashboard)/students/actions'
 
 export type LeadSourceOption = {
   id: string
@@ -61,7 +62,10 @@ export type StudentFormProps = {
   backendConsultantOptions: Array<{ id: string; name: string }>
   referrerOptions: Array<{ id: string; name: string; type: string }>
   leadSourceOptions: LeadSourceOption[]
-  onSubmit: (input: StudentInput) => Promise<ActionResult>
+  onSubmit: (
+    input: StudentInput,
+    preliminaryScores?: PreliminaryScoreInput[],
+  ) => Promise<ActionResult>
 }
 
 const CURRENT_DEGREE_LABELS: Record<(typeof CURRENT_DEGREE_VALUES)[number], string> = {
@@ -147,6 +151,17 @@ export function StudentForm({
     defaultValues: defaultValuesFor(initialValues, currentUserId, fallbackLeadSourceId),
   })
 
+  // Preliminary scores section — only rendered in create mode. Front-end
+  // consultants jot down what they know; back-end consultants take over for
+  // detail / certificate / dates. All fields optional.
+  const [prelimGpa, setPrelimGpa] = useState('')
+  const [prelimEngType, setPrelimEngType] = useState<'none' | 'toefl' | 'ielts' | 'duolingo'>(
+    'none',
+  )
+  const [prelimEngScore, setPrelimEngScore] = useState('')
+  const [prelimStdType, setPrelimStdType] = useState<'none' | 'gre' | 'gmat' | 'sat'>('none')
+  const [prelimStdScore, setPrelimStdScore] = useState('')
+
   const leadSourceId = form.watch('lead_source_id')
   const currentSource = leadSourceOptions.find((o) => o.id === leadSourceId)
   const currentCode = currentSource?.code
@@ -167,9 +182,25 @@ export function StudentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadSourceId])
 
+  const buildPreliminaryScores = (): PreliminaryScoreInput[] => {
+    if (mode !== 'create') return []
+    const out: PreliminaryScoreInput[] = []
+    if (prelimGpa.trim()) {
+      out.push({ score_type: 'gpa', total_score: prelimGpa.trim() })
+    }
+    if (prelimEngType !== 'none' && prelimEngScore.trim()) {
+      out.push({ score_type: prelimEngType, total_score: prelimEngScore.trim() })
+    }
+    if (prelimStdType !== 'none' && prelimStdScore.trim()) {
+      out.push({ score_type: prelimStdType, total_score: prelimStdScore.trim() })
+    }
+    return out
+  }
+
   const handleSubmit = form.handleSubmit((data) => {
+    const scores = buildPreliminaryScores()
     startTransition(async () => {
-      const result = await onSubmit(data)
+      const result = await onSubmit(data, scores.length > 0 ? scores : undefined)
       if (!result.ok) {
         toast.error(result.error)
         if (result.fieldErrors) {
@@ -461,6 +492,109 @@ export function StudentForm({
             </div>
           </CardContent>
         </Card>
+
+        {/* 初步成績 — 僅建檔時填寫,後端再補完整 */}
+        {mode === 'create' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">初步成績(選填)</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                有什麼填什麼,後續會由後端顧問補完整(子分數、考試日期、證書等)。前端建檔後不可再回頭改。
+              </p>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="prelim-gpa">大學 GPA</Label>
+                <Input
+                  id="prelim-gpa"
+                  value={prelimGpa}
+                  onChange={(e) => setPrelimGpa(e.target.value)}
+                  placeholder="例:3.85"
+                  disabled={pending}
+                />
+                <p className="text-xs text-muted-foreground">4.0 制</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>英文成績類型</Label>
+                <Select
+                  value={prelimEngType}
+                  onValueChange={(v) => {
+                    setPrelimEngType(v as typeof prelimEngType)
+                    if (v === 'none') setPrelimEngScore('')
+                  }}
+                  disabled={pending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">尚無</SelectItem>
+                    <SelectItem value="toefl">TOEFL</SelectItem>
+                    <SelectItem value="ielts">IELTS</SelectItem>
+                    <SelectItem value="duolingo">Duolingo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="prelim-eng-score">英文總分</Label>
+                <Input
+                  id="prelim-eng-score"
+                  value={prelimEngScore}
+                  onChange={(e) => setPrelimEngScore(e.target.value)}
+                  placeholder={
+                    prelimEngType === 'toefl'
+                      ? '例:105'
+                      : prelimEngType === 'ielts'
+                        ? '例:7.5'
+                        : prelimEngType === 'duolingo'
+                          ? '例:135'
+                          : '—'
+                  }
+                  disabled={pending || prelimEngType === 'none'}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>標化測驗類型</Label>
+                <Select
+                  value={prelimStdType}
+                  onValueChange={(v) => {
+                    setPrelimStdType(v as typeof prelimStdType)
+                    if (v === 'none') setPrelimStdScore('')
+                  }}
+                  disabled={pending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">尚無</SelectItem>
+                    <SelectItem value="gre">GRE</SelectItem>
+                    <SelectItem value="gmat">GMAT</SelectItem>
+                    <SelectItem value="sat">SAT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="prelim-std-score">標化測驗總分</Label>
+                <Input
+                  id="prelim-std-score"
+                  value={prelimStdScore}
+                  onChange={(e) => setPrelimStdScore(e.target.value)}
+                  placeholder={
+                    prelimStdType === 'gre'
+                      ? '例:325'
+                      : prelimStdType === 'gmat'
+                        ? '例:710'
+                        : prelimStdType === 'sat'
+                          ? '例:1500'
+                          : '—'
+                  }
+                  disabled={pending || prelimStdType === 'none'}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* 名單來源與顧問派發 */}
         <Card>

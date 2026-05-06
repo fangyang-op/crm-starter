@@ -14,6 +14,14 @@ export type ActionResult =
   | { ok: true; id: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
 
+/** Optional initial scores captured during 前端建檔. Each row becomes
+ *  an academic_scores entry with status='preliminary'. */
+export type PreliminaryScoreInput = {
+  score_type: string
+  total_score: string
+  sub_scores?: Record<string, string | number>
+}
+
 function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   for (const issue of err.issues) {
@@ -24,7 +32,10 @@ function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]>
   return result
 }
 
-export async function createStudent(input: StudentInput): Promise<ActionResult> {
+export async function createStudent(
+  input: StudentInput,
+  preliminaryScores?: PreliminaryScoreInput[],
+): Promise<ActionResult> {
   const parsed = createStudentSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
@@ -56,6 +67,24 @@ export async function createStudent(input: StudentInput): Promise<ActionResult> 
     entity_type: 'student',
     entity_id: data.id,
   })
+
+  // Optional preliminary scores — best-effort. If a row fails (e.g. invalid
+  // score_type), we keep going so the student creation isn't blocked. The
+  // back-end can fix individual rows later.
+  if (preliminaryScores && preliminaryScores.length > 0) {
+    for (const s of preliminaryScores) {
+      if (!s.total_score?.trim()) continue
+      await supabase.rpc(
+        'create_preliminary_score' as never,
+        {
+          p_student_id: data.id,
+          p_score_type: s.score_type,
+          p_total_score: s.total_score,
+          p_sub_scores: s.sub_scores ?? null,
+        } as never,
+      )
+    }
+  }
 
   revalidatePath('/students')
   return { ok: true, id: data.id }
