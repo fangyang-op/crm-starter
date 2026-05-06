@@ -314,7 +314,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <StudentDocuments studentId={student.id} canCreate={canChangeStatus} />
         </TabsContent>
         <TabsContent value="applications">
-          <StudentApplications studentId={student.id} canEdit={canChangeStatus} />
+          <StudentApplications
+            studentId={student.id}
+            canEdit={canChangeStatus}
+            isManager={isManagerOrAdmin(role)}
+          />
         </TabsContent>
       </Tabs>
     </div>

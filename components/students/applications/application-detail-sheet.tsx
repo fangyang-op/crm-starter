@@ -32,12 +32,19 @@ import {
   APPLICATION_STATUS_VALUES,
   type ApplicationStatus,
 } from '@/lib/constants/application-status'
+import {
+  COMMISSION_STATUS_CONFIG,
+  COMMISSION_STATUS_VALUES,
+  type CommissionStatus,
+} from '@/lib/constants/commission'
 
 import {
   revealApplicationPortalPassword,
   updateApplicationMeta,
   updateApplicationPortal,
   updateApplicationStatus,
+  updateCommission,
+  updateTuition,
 } from '@/app/(dashboard)/students/[id]/applications/actions'
 
 import type { ApplicationRow } from './applications-view'
@@ -46,6 +53,7 @@ type Props = {
   studentId: string
   application: ApplicationRow | null
   canEdit: boolean
+  isManager: boolean
   open: boolean
   onOpenChange: (next: boolean) => void
 }
@@ -54,6 +62,7 @@ export function ApplicationDetailSheet({
   studentId,
   application,
   canEdit,
+  isManager,
   open,
   onOpenChange,
 }: Props) {
@@ -82,6 +91,16 @@ export function ApplicationDetailSheet({
           <StatusBlock studentId={studentId} app={application} canEdit={canEdit} />
           <MetaBlock studentId={studentId} app={application} canEdit={canEdit} />
           <PortalBlock studentId={studentId} app={application} canEdit={canEdit} />
+          {isManager ? <TuitionBlock studentId={studentId} app={application} /> : null}
+          {isManager && application.school_is_partner && application.commission ? (
+            <CommissionBlock studentId={studentId} app={application} />
+          ) : null}
+          {isManager && application.school_is_partner && !application.commission ? (
+            <section className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+              本校為合作校(rate {application.school_commission_rate ?? '—'}%)。
+              將申請狀態改為「確定入學」後,系統會自動建立佣金紀錄。
+            </section>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>
@@ -626,4 +645,248 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// ============================================================================
+// Tuition block — manager-only. Saving recomputes the commission's
+// expected_amount on the server.
+// ============================================================================
+function TuitionBlock({ studentId, app }: { studentId: string; app: ApplicationRow }) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [amount, setAmount] = useState<string>(
+    app.tuition_amount !== null ? String(app.tuition_amount) : '',
+  )
+  const [currency, setCurrency] = useState<string>(app.tuition_currency || 'USD')
+
+  useEffect(() => {
+    setAmount(app.tuition_amount !== null ? String(app.tuition_amount) : '')
+    setCurrency(app.tuition_currency || 'USD')
+  }, [app.id, app.tuition_amount, app.tuition_currency])
+
+  const submit = () => {
+    let amt: number | null = null
+    if (amount.trim() !== '') {
+      const n = Number(amount)
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error('學費必須是非負數')
+        return
+      }
+      amt = n
+    }
+    startTransition(async () => {
+      const r = await updateTuition(studentId, {
+        application_id: app.id,
+        tuition_amount: amt,
+        tuition_currency: currency.trim() || 'USD',
+      })
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      toast.success('已更新學費' + (app.commission ? '(已重算佣金預期金額)' : ''))
+      router.refresh()
+    })
+  }
+
+  return (
+    <section className="space-y-2 rounded-md border p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">學費(僅主管可見)</p>
+        {app.school_is_partner ? (
+          <Badge variant="outline" className="text-[10px]">
+            合作校 {app.school_commission_rate ?? '—'}%
+          </Badge>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-[1fr_120px] gap-2">
+        <div className="space-y-1">
+          <Label htmlFor="tuition-amount" className="text-xs">
+            金額
+          </Label>
+          <Input
+            id="tuition-amount"
+            type="number"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="例:55000"
+            disabled={pending}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="tuition-currency" className="text-xs">
+            幣別
+          </Label>
+          <Input
+            id="tuition-currency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+            disabled={pending}
+            maxLength={8}
+          />
+        </div>
+      </div>
+      <Button onClick={submit} disabled={pending} className="w-full" size="sm">
+        {pending ? '儲存中…' : '儲存學費'}
+      </Button>
+    </section>
+  )
+}
+
+// ============================================================================
+// Commission block — manager-only. Only renders when a commission row
+// exists (auto-created by trigger when status reaches enrolled on a
+// partner school).
+// ============================================================================
+function CommissionBlock({ studentId, app }: { studentId: string; app: ApplicationRow }) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const c = app.commission!
+
+  const [actualAmount, setActualAmount] = useState<string>(
+    c.actual_amount !== null ? String(c.actual_amount) : '',
+  )
+  const [status, setStatus] = useState<CommissionStatus>(c.status as CommissionStatus)
+  const [invoicedAt, setInvoicedAt] = useState(c.invoiced_at ?? '')
+  const [receivedAt, setReceivedAt] = useState(c.received_at ?? '')
+  const [notes, setNotes] = useState(c.notes ?? '')
+
+  useEffect(() => {
+    setActualAmount(c.actual_amount !== null ? String(c.actual_amount) : '')
+    setStatus(c.status as CommissionStatus)
+    setInvoicedAt(c.invoiced_at ?? '')
+    setReceivedAt(c.received_at ?? '')
+    setNotes(c.notes ?? '')
+  }, [c.id, c.actual_amount, c.status, c.invoiced_at, c.received_at, c.notes])
+
+  const submit = () => {
+    let amt: number | null = null
+    if (actualAmount.trim() !== '') {
+      const n = Number(actualAmount)
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error('實收金額必須是非負數')
+        return
+      }
+      amt = n
+    }
+    startTransition(async () => {
+      const r = await updateCommission(studentId, {
+        commission_id: c.id,
+        actual_amount: amt,
+        status,
+        invoiced_at: invoicedAt.trim() || null,
+        received_at: receivedAt.trim() || null,
+        notes: notes.trim() || null,
+      })
+      if (!r.ok) {
+        toast.error(r.error)
+        return
+      }
+      toast.success('已更新佣金紀錄')
+      router.refresh()
+    })
+  }
+
+  const cfg = COMMISSION_STATUS_CONFIG[status]
+
+  return (
+    <section className="space-y-3 rounded-md border p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">佣金紀錄(僅主管可見)</p>
+        <Badge variant="outline" className={cn('border', cfg.badgeClass)}>
+          {cfg.label}
+        </Badge>
+      </div>
+
+      <div className="rounded-md bg-muted/40 p-2.5 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">預期金額(自動計算)</span>
+          <span className="font-medium tabular-nums">
+            {c.expected_amount !== null
+              ? `${c.expected_amount.toLocaleString('en-US')} ${c.currency}`
+              : '尚未填學費,無法計算'}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="commission-actual" className="text-xs">
+            實收金額
+          </Label>
+          <Input
+            id="commission-actual"
+            type="number"
+            min={0}
+            step="0.01"
+            value={actualAmount}
+            onChange={(e) => setActualAmount(e.target.value)}
+            disabled={pending}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">狀態</Label>
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(v as CommissionStatus)}
+            disabled={pending}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COMMISSION_STATUS_VALUES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {COMMISSION_STATUS_CONFIG[s].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="commission-invoiced" className="text-xs">
+            開立日期
+          </Label>
+          <Input
+            id="commission-invoiced"
+            type="date"
+            value={invoicedAt}
+            onChange={(e) => setInvoicedAt(e.target.value)}
+            disabled={pending}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="commission-received" className="text-xs">
+            入帳日期
+          </Label>
+          <Input
+            id="commission-received"
+            type="date"
+            value={receivedAt}
+            onChange={(e) => setReceivedAt(e.target.value)}
+            disabled={pending}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="commission-notes" className="text-xs">
+          備註
+        </Label>
+        <Textarea
+          id="commission-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          disabled={pending}
+        />
+      </div>
+
+      <Button onClick={submit} disabled={pending} className="w-full" size="sm">
+        {pending ? '儲存中…' : '儲存佣金紀錄'}
+      </Button>
+    </section>
+  )
 }

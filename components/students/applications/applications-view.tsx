@@ -25,11 +25,24 @@ import {
 } from '@/lib/constants/application-status'
 import { COUNTRY_LABELS } from '@/lib/constants/school'
 
+export type CommissionRow = {
+  id: string
+  expected_amount: number | null
+  actual_amount: number | null
+  currency: string
+  status: string
+  invoiced_at: string | null
+  received_at: string | null
+  notes: string | null
+}
+
 export type ApplicationRow = {
   id: string
   school_id: string
   school_name: string
   school_country: string
+  school_is_partner: boolean
+  school_commission_rate: number | null
   program_label: string
   status: ApplicationStatus
   application_round: string | null
@@ -44,15 +57,19 @@ export type ApplicationRow = {
   application_fee: number | null
   application_fee_paid: boolean
   notes: string | null
+  tuition_amount: number | null
+  tuition_currency: string
+  commission: CommissionRow | null
 }
 
 type Props = {
   studentId: string
   applications: ApplicationRow[]
   canEdit: boolean
+  isManager: boolean
 }
 
-export function ApplicationsView({ studentId, applications, canEdit }: Props) {
+export function ApplicationsView({ studentId, applications, canEdit, isManager }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const active = useMemo(
     () => applications.find((a) => a.id === activeId) ?? null,
@@ -89,6 +106,7 @@ export function ApplicationsView({ studentId, applications, canEdit }: Props) {
         studentId={studentId}
         application={active}
         canEdit={canEdit}
+        isManager={isManager}
         open={Boolean(active)}
         onOpenChange={(o) => {
           if (!o) setActiveId(null)

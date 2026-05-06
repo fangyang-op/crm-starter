@@ -12,6 +12,12 @@ import {
   type ApplicationPortalInput,
   type ApplicationStatusInput,
 } from '@/lib/validators/application'
+import {
+  commissionUpdateSchema,
+  tuitionSchema,
+  type CommissionUpdateInput,
+  type TuitionInput,
+} from '@/lib/validators/commission'
 
 export type ApplicationActionResult =
   | { ok: true }
@@ -157,4 +163,61 @@ export async function revealApplicationPortalPassword(
   } catch (e) {
     return { ok: false, error: `解密失敗:${(e as Error).message}` }
   }
+}
+
+export async function updateTuition(
+  studentId: string,
+  input: TuitionInput,
+): Promise<ApplicationActionResult> {
+  const parsed = tuitionSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
+  }
+
+  const supabase = createClient()
+  const { error } = await supabase.rpc(
+    'update_application_tuition' as never,
+    {
+      p_application_id: parsed.data.application_id,
+      p_tuition_amount: parsed.data.tuition_amount,
+      p_tuition_currency: parsed.data.tuition_currency,
+    } as never,
+  )
+
+  if (error) {
+    return { ok: false, error: `更新學費失敗:${(error as { message: string }).message}` }
+  }
+
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true }
+}
+
+export async function updateCommission(
+  studentId: string,
+  input: CommissionUpdateInput,
+): Promise<ApplicationActionResult> {
+  const parsed = commissionUpdateSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
+  }
+
+  const supabase = createClient()
+  const { error } = await supabase.rpc(
+    'update_commission' as never,
+    {
+      p_id: parsed.data.commission_id,
+      p_actual_amount: parsed.data.actual_amount,
+      p_status: parsed.data.status,
+      p_invoiced_at: parsed.data.invoiced_at ?? null,
+      p_received_at: parsed.data.received_at ?? null,
+      p_notes: parsed.data.notes,
+    } as never,
+  )
+
+  if (error) {
+    return { ok: false, error: `更新佣金失敗:${(error as { message: string }).message}` }
+  }
+
+  revalidatePath(`/students/${studentId}`)
+  return { ok: true }
 }

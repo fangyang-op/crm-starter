@@ -238,9 +238,15 @@
 - [x] 刪除 score 連同 storage 證書一起清掉;activity_log 紀錄 `score_added` / `score_updated` / `score_deleted`(含 had_certificate 旗標)
 
 ### 4.4 佣金紀錄
-- [ ] application 狀態 = `enrolled` 且學校 `is_partner = true`
-- [ ] 自動建立 `commission_records`(預期金額 = `partner_commission_rate × 學費`,需手填學費)
-- [ ] 主管手動更新 `actual_amount` / `received_at`
+- [x] `applications` 加 `tuition_amount NUMERIC(12,2)` + `tuition_currency TEXT DEFAULT 'USD'`(0021)
+- [x] Trigger `trg_auto_create_commission` AFTER UPDATE OF status:當狀態 → `enrolled` 且 `schools.is_partner=TRUE` 自動 INSERT 佣金;若已存在則跳過(idempotent)
+- [x] Trigger 同時計算 `expected_amount = round(tuition × rate / 100, 2)`(若 tuition 已填);若 tuition 後填,`update_application_tuition` SD 會 backfill
+- [x] 退出 enrolled 不刪佣金,只寫 `commission_review_needed` activity_log 提醒主管手動處理(可能已開立發票)
+- [x] SD `update_application_tuition` / `update_commission`(`_commission_authorize` 強制只給 manager+/admin,連顧問都擋下,因為佣金資訊敏感)
+- [x] 佣金狀態:`expected` / `invoiced` / `received` / `cancelled` 四值
+- [x] UI:申請 detail Sheet 加學費 + 佣金兩個 section(只 manager 看得到);非合作校不顯示佣金 block;合作校但尚未 enrolled 顯示提示文案
+- [x] 佣金 expected_amount 從學費自動算,只能在 UI 看不能編輯(改學費自動重算);實收金額、狀態、開立 / 入帳日期、備註 全部可編
+- [x] activity_log:`commission_created` / `commission_recomputed` / `commission_updated` / `commission_review_needed`
 
 ✅ **Phase 4 完成標準**:申請進度透明、Portal 安全儲存、合作校自動列入佣金。
 

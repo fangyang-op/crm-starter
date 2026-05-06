@@ -8,9 +8,10 @@ import { createClient } from '@/lib/supabase/server'
 type Props = {
   studentId: string
   canEdit: boolean
+  isManager: boolean
 }
 
-export async function StudentApplications({ studentId, canEdit }: Props) {
+export async function StudentApplications({ studentId, canEdit, isManager }: Props) {
   const supabase = createClient()
 
   const { data: rows } = await supabase
@@ -18,7 +19,8 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
     .select(
       'id, school_id, program_id, program_name_override, status, application_round, deadline, ' +
         'submitted_at, decision_at, decision_notes, portal_url, portal_username, ' +
-        'portal_password_encrypted, portal_notes, application_fee, application_fee_paid, notes',
+        'portal_password_encrypted, portal_notes, application_fee, application_fee_paid, notes, ' +
+        'tuition_amount, tuition_currency',
     )
     .eq('student_id', studentId)
     .order('created_at', { ascending: true })
@@ -41,6 +43,8 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
     application_fee: number | null
     application_fee_paid: boolean | null
     notes: string | null
+    tuition_amount: number | null
+    tuition_currency: string | null
   }>
 
   const schoolIds = Array.from(new Set(apps.map((a) => a.school_id)))
@@ -48,11 +52,13 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
     new Set(apps.map((a) => a.program_id).filter((v): v is string => Boolean(v))),
   )
 
-  const [{ data: schools }, { data: programs }] = await Promise.all([
+  const appIds = apps.map((a) => a.id)
+
+  const [{ data: schools }, { data: programs }, { data: commissions }] = await Promise.all([
     schoolIds.length > 0
       ? supabase
           .from('schools')
-          .select('id, name_en, name_zh, short_name, country')
+          .select('id, name_en, name_zh, short_name, country, is_partner, partner_commission_rate')
           .in('id', schoolIds)
       : Promise.resolve({
           data: [] as Array<{
@@ -61,6 +67,8 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
             name_zh: string | null
             short_name: string | null
             country: string
+            is_partner: boolean
+            partner_commission_rate: number | null
           }>,
         }),
     programIds.length > 0
@@ -71,18 +79,59 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
       : Promise.resolve({
           data: [] as Array<{ id: string; program_name: string; degree_level: string }>,
         }),
+    // Commission records: only manager+/admin can SELECT (RLS), so non-managers
+    // simply receive [] here — no error to swallow.
+    isManager && appIds.length > 0
+      ? supabase
+          .from('commission_records')
+          .select(
+            'id, application_id, expected_amount, actual_amount, currency, status, ' +
+              'invoiced_at, received_at, notes',
+          )
+          .in('application_id', appIds)
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string
+            application_id: string
+            expected_amount: number | null
+            actual_amount: number | null
+            currency: string
+            status: string
+            invoiced_at: string | null
+            received_at: string | null
+            notes: string | null
+          }>,
+        }),
   ])
 
   const schoolMap = new Map((schools ?? []).map((s) => [s.id, s]))
   const programMap = new Map((programs ?? []).map((p) => [p.id, p.program_name]))
+  const commissionMap = new Map(
+    (
+      (commissions ?? []) as unknown as Array<{
+        id: string
+        application_id: string
+        expected_amount: number | null
+        actual_amount: number | null
+        currency: string
+        status: string
+        invoiced_at: string | null
+        received_at: string | null
+        notes: string | null
+      }>
+    ).map((c) => [c.application_id, c]),
+  )
 
   const list: ApplicationRow[] = apps.map((a) => {
     const sch = schoolMap.get(a.school_id)
+    const com = commissionMap.get(a.id)
     return {
       id: a.id,
       school_id: a.school_id,
       school_name: sch?.short_name || sch?.name_en || '(未知學校)',
       school_country: sch?.country ?? '',
+      school_is_partner: Boolean(sch?.is_partner),
+      school_commission_rate: sch?.partner_commission_rate ?? null,
       program_label:
         a.program_name_override ??
         (a.program_id ? (programMap.get(a.program_id) ?? '未指定科系') : '未指定科系'),
@@ -99,6 +148,20 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
       application_fee: a.application_fee,
       application_fee_paid: a.application_fee_paid ?? false,
       notes: a.notes,
+      tuition_amount: a.tuition_amount,
+      tuition_currency: a.tuition_currency ?? 'USD',
+      commission: com
+        ? {
+            id: com.id,
+            expected_amount: com.expected_amount,
+            actual_amount: com.actual_amount,
+            currency: com.currency,
+            status: com.status,
+            invoiced_at: com.invoiced_at,
+            received_at: com.received_at,
+            notes: com.notes,
+          }
+        : null,
     }
   })
 
@@ -113,5 +176,12 @@ export async function StudentApplications({ studentId, canEdit }: Props) {
     )
   }
 
-  return <ApplicationsView studentId={studentId} applications={list} canEdit={canEdit} />
+  return (
+    <ApplicationsView
+      studentId={studentId}
+      applications={list}
+      canEdit={canEdit}
+      isManager={isManager}
+    />
+  )
 }
