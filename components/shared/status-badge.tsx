@@ -1,24 +1,26 @@
 import { cn } from '@/lib/utils'
-import { STUDENT_STATUS_CONFIG, type StudentStatus } from '@/lib/constants/student-status'
+import { statusBadgeClass } from '@/lib/constants/student-status'
 
 type StatusBadgeProps = {
-  status: StudentStatus
+  /** Visible Chinese label, e.g. 「新名單」. Comes from student_statuses.label_zh. */
+  label: string
+  /** Color preset key (e.g. 'slate', 'emerald'). Comes from student_statuses.color_key. */
+  colorKey: string | null | undefined
   size?: 'sm' | 'md'
   className?: string
 }
 
-export function StatusBadge({ status, size = 'md', className }: StatusBadgeProps) {
-  const cfg = STUDENT_STATUS_CONFIG[status]
+export function StatusBadge({ label, colorKey, size = 'md', className }: StatusBadgeProps) {
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full border font-medium',
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
-        cfg.badgeClass,
+        statusBadgeClass(colorKey),
         className,
       )}
     >
-      {cfg.label}
+      {label}
     </span>
   )
 }

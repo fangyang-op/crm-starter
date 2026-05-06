@@ -22,7 +22,6 @@ import {
   type ApplicationStatus,
 } from '@/lib/constants/application-status'
 import { COMMISSION_STATUS_CONFIG, type CommissionStatus } from '@/lib/constants/commission'
-import { STUDENT_STATUS_CONFIG, type StudentStatus } from '@/lib/constants/student-status'
 import type { Database } from '@/types/database'
 
 type ActivityRow = Database['public']['Tables']['activity_log']['Row']
@@ -48,12 +47,6 @@ export type ActivityDisplay = {
   iconClass: string
   description: string
   category: TimelineCategory
-}
-
-function studentStatusLabel(s: unknown): string | null {
-  if (typeof s !== 'string') return null
-  const cfg = STUDENT_STATUS_CONFIG[s as StudentStatus]
-  return cfg ? cfg.label : s
 }
 
 function applicationStatusLabel(s: unknown): string | null {
@@ -96,15 +89,14 @@ export function formatActivity(activity: ActivityRow, actorName?: string): Activ
         category: 'basic',
       }
     case 'status_changed': {
-      const from = studentStatusLabel(payload.from)
-      const to = studentStatusLabel(payload.to)
+      // Post-migration 0026 the payload carries UUIDs (from_status_id /
+      // to_status_id). We don't have a status lookup here without an extra
+      // fetch, so we render a generic line. Old rows with payload.from /
+      // payload.to strings fall through to activity.description if set.
       return {
         icon: ArrowRight,
         iconClass: 'text-blue-600',
-        description:
-          from && to
-            ? `${actor} 將狀態從「${from}」改為「${to}」`
-            : (activity.description ?? `${actor} 變更了狀態`),
+        description: activity.description ?? `${actor} 變更了學生狀態`,
         category: 'basic',
       }
     }

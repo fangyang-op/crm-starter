@@ -2,8 +2,6 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { STUDENT_STATUS_CONFIG, type StudentStatus } from '@/lib/constants/student-status'
-import { ALLOWED_TRANSITIONS } from '@/lib/constants/student-status-transitions'
 import {
   createStudentSchema,
   toDbPayload,
@@ -97,43 +95,21 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
 
 export async function changeStudentStatus(
   id: string,
-  newStatus: StudentStatus,
+  newStatusId: string,
   note: string | null,
 ): Promise<ActionResult> {
   if (!id) return { ok: false, error: '缺少學生 id' }
+  if (!newStatusId) return { ok: false, error: '缺少目標狀態' }
 
   const supabase = createClient()
 
-  const { data: current, error: fetchErr } = await supabase
-    .from('students')
-    .select('status')
-    .eq('id', id)
-    .is('deleted_at', null)
-    .maybeSingle()
-
-  if (fetchErr) return { ok: false, error: fetchErr.message }
-  if (!current) return { ok: false, error: '找不到學生(可能已刪除)' }
-
-  const fromStatus = current.status as StudentStatus
-  const allowed = ALLOWED_TRANSITIONS[fromStatus] ?? []
-  if (fromStatus === newStatus) {
-    return { ok: false, error: '狀態未變更' }
-  }
-  if (!allowed.includes(newStatus)) {
-    return {
-      ok: false,
-      error: `不允許從「${STUDENT_STATUS_CONFIG[fromStatus].label}」變更為「${STUDENT_STATUS_CONFIG[newStatus].label}」`,
-    }
-  }
-
-  // Same SECURITY DEFINER pattern as soft_delete_student (migration 0005).
-  // Cast: function not in generated Database types yet — run `npm run gen:types`
-  // after the migration is applied to remove the cast.
+  // Spec § 2.2 MVP: any → any (admin owns the whitelist now). The SD function
+  // also rejects "no-op" and "unknown status" errors, so we don't double-check.
   const { error } = await supabase.rpc(
     'change_student_status' as never,
     {
       p_id: id,
-      p_new_status: newStatus,
+      p_new_status_id: newStatusId,
       p_note: note,
     } as never,
   )

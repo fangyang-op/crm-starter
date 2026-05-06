@@ -223,11 +223,18 @@
   - `supabase/migrations/YYYYMMDDHHMMSS_create_student_statuses.sql`
   - `supabase/migrations/YYYYMMDDHHMMSS_migrate_students_status_to_fk.sql`
 - **驗收**:
-  - [ ] `student_statuses` 表建立完成,seed 資料齊全
-  - [ ] 學生表改用 FK,既有資料無遺失
-  - [ ] Admin 可新增/編輯/停用狀態
-  - [ ] 連動學生頁(見 2.2)
-- [ ] 完成
+  - [x] `student_statuses` 表建立完成 + seed 全部 16 個歷史 enum 值(0026)
+  - [x] 學生表改用 `status_id` FK,既有資料 backfill 後 NOT NULL
+  - [x] `student_status_history.from_status / to_status` 改 UUID FK,history 一併遷移
+  - [x] DROP 舊 column + DROP TYPE student_status,所有引用 enum 的 SD function / trigger 都重新發出
+  - [x] `change_student_status` 改吃 UUID;轉換規則放寬為 any → any(MVP)
+  - [x] Admin 可新增/編輯/停用狀態(`/settings/student-statuses` + `StudentStatusFormDialog` + SD CRUD)
+  - [x] 連動學生頁(2.2):列表篩選器、詳情頁徽章、changer 對話框都動態讀取
+- [x] 完成
+  - 移除 `lib/constants/student-status-transitions.ts`(不再硬限制流轉)
+  - `lib/constants/student-status.ts` 重寫為 COLOR_PRESETS + StudentStatusRow 型別 + 工具函式
+  - `StatusBadge` API 改為 `{ label, colorKey }` props,不再從 const map 查
+  - `StudentStatusChanger` 改為接 options 陣列,按 category 分組顯示
 
 ---
 

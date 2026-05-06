@@ -6,11 +6,7 @@ import { StudentsListRow } from '@/components/students/students-list-row'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import {
-  STUDENT_STATUS_CONFIG,
-  STUDENT_STATUS_VALUES,
-  type StudentStatus,
-} from '@/lib/constants/student-status'
+import type { StudentStatusRow } from '@/lib/constants/student-status'
 import { createClient } from '@/lib/supabase/server'
 
 const PAGE_SIZE = 20
@@ -30,10 +26,20 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
+  // Pull all (active) statuses up-front: needed for the filter dropdown,
+  // for translating each row's status_id to label/color, and for the changer
+  // dialog options on the detail page.
+  const { data: statusesRaw } = await supabase
+    .from('student_statuses' as never)
+    .select('id, code, label_zh, category, color_key, sort_order, is_active')
+    .order('sort_order' as never, { ascending: true })
+  const allStatuses = (statusesRaw ?? []) as unknown as StudentStatusRow[]
+  const statusMap = new Map(allStatuses.map((s) => [s.id, s]))
+
   let query = supabase
     .from('students')
     .select(
-      'id, full_name, english_name, status, frontend_consultant_id, backend_consultant_id, target_country, target_degree, target_intake, created_at',
+      'id, full_name, english_name, status_id, frontend_consultant_id, backend_consultant_id, target_country, target_degree, target_intake, created_at',
       { count: 'exact' },
     )
     .is('deleted_at', null)
@@ -46,9 +52,14 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
     query = query.or(`full_name.ilike.${like},english_name.ilike.${like},email.ilike.${like}`)
   }
 
+  // The filter accepts a status code (stable across renames) or status id.
+  // Look up the id by code first, fall back to id directly.
   const status = searchParams.status?.trim()
-  if (status && (STUDENT_STATUS_VALUES as readonly string[]).includes(status)) {
-    query = query.eq('status', status as StudentStatus)
+  const matchedStatus = status
+    ? (allStatuses.find((s) => s.code === status) ?? allStatuses.find((s) => s.id === status))
+    : null
+  if (matchedStatus) {
+    query = query.eq('status_id' as never, matchedStatus.id as never)
   }
 
   const { data: students, count, error } = await query
@@ -99,11 +110,13 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
             className="inline-flex h-10 w-48 items-center rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">全部狀態</option>
-            {STUDENT_STATUS_VALUES.map((s) => (
-              <option key={s} value={s}>
-                {STUDENT_STATUS_CONFIG[s].label}
-              </option>
-            ))}
+            {allStatuses
+              .filter((s) => s.is_active)
+              .map((s) => (
+                <option key={s.id} value={s.code}>
+                  {s.label_zh}
+                </option>
+              ))}
           </select>
         </div>
         <Button type="submit" variant="secondary">
@@ -139,7 +152,20 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((s) => {
+                {students.map((row) => {
+                  const s = row as unknown as {
+                    id: string
+                    full_name: string
+                    english_name: string | null
+                    status_id: string
+                    frontend_consultant_id: string | null
+                    backend_consultant_id: string | null
+                    target_country: string[] | null
+                    target_degree: string | null
+                    target_intake: string | null
+                    created_at: string
+                  }
+                  const status = statusMap.get(s.status_id)
                   const target =
                     [s.target_country?.join(' / '), s.target_degree, s.target_intake]
                       .filter(Boolean)
@@ -151,7 +177,8 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
                         id: s.id,
                         full_name: s.full_name,
                         english_name: s.english_name,
-                        status: s.status as StudentStatus,
+                        status_label: status?.label_zh ?? '—',
+                        status_color_key: status?.color_key ?? null,
                         frontend_consultant_name: s.frontend_consultant_id
                           ? (profileMap.get(s.frontend_consultant_id) ?? null)
                           : null,

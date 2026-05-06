@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
+import type { StudentStatusRow } from '@/lib/constants/student-status'
 import { createClient } from '@/lib/supabase/server'
 
 const TARGET_DEGREE_LABELS: Record<string, string> = {
@@ -106,6 +107,16 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       )?.label_zh ?? null)
     : null
 
+  // student_statuses for the changer dialog (active only) + the current status row.
+  const { data: statusesRaw } = await supabase
+    .from('student_statuses' as never)
+    .select('id, code, label_zh, category, color_key, sort_order, is_active')
+    .order('sort_order' as never, { ascending: true })
+  const allStatuses = (statusesRaw ?? []) as unknown as StudentStatusRow[]
+  const studentStatusId = (student as { status_id?: string | null }).status_id ?? null
+  const currentStatus =
+    (studentStatusId ? allStatuses.find((s) => s.id === studentStatusId) : null) ?? null
+
   const role = me.role as UserRole
   const canDelete = isManagerOrAdmin(role)
   const canChangeStatus =
@@ -132,11 +143,14 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             {student.english_name ? (
               <span className="text-muted-foreground">{student.english_name}</span>
             ) : null}
-            <StudentStatusChanger
-              studentId={student.id}
-              currentStatus={student.status}
-              canEdit={canChangeStatus}
-            />
+            {currentStatus ? (
+              <StudentStatusChanger
+                studentId={student.id}
+                currentStatus={currentStatus}
+                options={allStatuses.filter((s) => s.is_active)}
+                canEdit={canChangeStatus}
+              />
+            ) : null}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             建立於{' '}
@@ -159,7 +173,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       </header>
 
-      {student.status === 'closed_won' &&
+      {currentStatus?.code === 'closed_won' &&
       !student.backend_consultant_id &&
       isManagerOrAdmin(role) ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">

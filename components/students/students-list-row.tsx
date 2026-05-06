@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation'
 
 import { StatusBadge } from '@/components/shared/status-badge'
 import { TableCell, TableRow } from '@/components/ui/table'
-import type { StudentStatus } from '@/lib/constants/student-status'
 
 export type StudentRowData = {
   id: string
   full_name: string
   english_name: string | null
-  status: StudentStatus
+  /** Status display fields, denormalized server-side from student_statuses. */
+  status_label: string
+  status_color_key: string | null
   frontend_consultant_name: string | null
   backend_consultant_name: string | null
   target: string
@@ -34,8 +35,6 @@ export function StudentsListRow({ student }: { student: StudentRowData }) {
       }}
     >
       <TableCell className="font-medium">
-        {/* Keep an inner Link so right-click → open in new tab still works.
-            stopPropagation prevents firing router.push twice. */}
         <Link
           href={`/students/${student.id}`}
           className="hover:underline"
@@ -50,7 +49,7 @@ export function StudentsListRow({ student }: { student: StudentRowData }) {
         </Link>
       </TableCell>
       <TableCell>
-        <StatusBadge status={student.status} size="sm" />
+        <StatusBadge label={student.status_label} colorKey={student.status_color_key} size="sm" />
       </TableCell>
       <TableCell className="text-sm">{student.frontend_consultant_name ?? '—'}</TableCell>
       <TableCell className="text-sm">{student.backend_consultant_name ?? '—'}</TableCell>
