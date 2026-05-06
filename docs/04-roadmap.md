@@ -217,10 +217,14 @@
 - [x] UI 顯示「已展開 X/Y 校」徽章 + 確認 dialog(視餘量改文案,全部已展開時 disable 為提示)
 
 ### 4.2 申請追蹤
-- [ ] `students/[id]/applications/` — 申請列表(看板式 + 列表切換)
-- [ ] 每筆申請可編輯狀態、deadline、portal 帳密
-- [ ] Portal 密碼填寫 → server action 加密後寫入
-- [ ] 顯示時 mask + 「複製」按鈕(server action 解密回傳)
+- [x] `students/[id]` 申請分頁 — 看板 / 列表 切換(`StudentApplications` server fetch + `ApplicationsView` client tabs)
+- [x] 每筆申請可編輯狀態、輪次、deadline、申請費 + 已繳費、一般備註、結果備註(SD `update_application_status`、`update_application_meta`)
+- [x] 狀態 → submitted 自動戳 `submitted_at`;狀態 → 五個 decision 自動戳 `decision_at`(idempotent,只 stamp NULL)
+- [x] Portal 密碼填寫 → action 用 `lib/crypto.encrypt()` AES-256-GCM 加密後寫入;`p_set_password BOOLEAN` 區分「不變/設定/清除」三模式
+- [x] 顯示時遮罩 ●●●;眼睛圖示 reveal(server action 解密)、Copy 按鈕(server action 解密 + 寫剪貼簿)、變更密碼 / 清除密碼分開
+- [x] 密碼變更寫一筆 activity_log(`application_portal_password_changed`,payload 只記 `cleared` 不記值)
+- [x] 看板:每欄一個狀態,卡片顯示截止(過期紅色)+ 輪次徽章 + Portal 圖示
+- [x] 列表:四欄 + 一個 Portal 快速指示
 
 ### 4.3 成績管理
 - [ ] `students/[id]` 主頁加「成績」分頁

@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Pencil } from 'lucide-react'
 
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import { StudentApplications } from '@/components/students/student-applications'
 import { StudentDeals } from '@/components/students/student-deals'
 import { StudentDocuments } from '@/components/students/student-documents'
 import { StudentSchools } from '@/components/students/student-schools'
@@ -308,19 +309,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <StudentDocuments studentId={student.id} canCreate={canChangeStatus} />
         </TabsContent>
         <TabsContent value="applications">
-          <PhasePlaceholder phase="4" hint="申請進度看板 + Portal 帳密 + 成績" />
+          <StudentApplications studentId={student.id} canEdit={canChangeStatus} />
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function PhasePlaceholder({ phase, hint }: { phase: string; hint: string }) {
-  return (
-    <div className="rounded-md border border-dashed p-12 text-center text-sm text-muted-foreground">
-      此分頁將於 Phase {phase} 完成
-      <br />
-      <span className="text-xs">{hint}</span>
     </div>
   )
 }
