@@ -1,10 +1,15 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, GitFork } from 'lucide-react'
 
+import {
+  ForkVariantDialog,
+  type ForkApplicationOption,
+} from '@/components/documents/fork-variant-dialog'
 import { MasterEditor } from '@/components/documents/master-editor'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
 import { DOC_TYPE_LABELS, type DocumentType } from '@/lib/constants/document'
@@ -75,6 +80,55 @@ export default async function MasterEditorPage({
       : { data: [] as Array<{ id: string; full_name: string; display_name: string | null }> }
   const modifierMap = new Map((modifiers ?? []).map((m) => [m.id, m.display_name || m.full_name]))
 
+  // Variants of this master
+  const { data: variants } = await supabase
+    .from('documents_variants')
+    .select(
+      'id, application_id, current_version_id, is_finalized, application:applications!inner(id, school:schools!inner(name_en, short_name), program:school_programs(program_name))',
+    )
+    .eq('master_id', params.masterId)
+    .order('created_at', { ascending: false })
+
+  const variantVersionIds = (variants ?? [])
+    .map((v) => v.current_version_id)
+    .filter((v): v is string => Boolean(v))
+  const { data: variantVersions } =
+    variantVersionIds.length > 0
+      ? await supabase
+          .from('documents_variant_versions')
+          .select('id, word_count, version_number')
+          .in('id', variantVersionIds)
+      : {
+          data: [] as Array<{ id: string; word_count: number; version_number: number }>,
+        }
+  const variantVersionMap = new Map(
+    (variantVersions ?? []).map((v) => [
+      v.id,
+      { word_count: v.word_count, version_number: v.version_number },
+    ]),
+  )
+
+  // Applications for this student (for the fork dialog)
+  const { data: apps } = await supabase
+    .from('applications')
+    .select('id, school:schools!inner(name_en, short_name), program:school_programs(program_name)')
+    .eq('student_id', params.id)
+
+  const forkedAppIds = new Set((variants ?? []).map((v) => v.application_id))
+  const forkApplicationOptions: ForkApplicationOption[] = (apps ?? []).map((a) => {
+    const sch = a.school as { name_en: string; short_name: string | null } | null
+    const prg = a.program as { program_name: string } | null
+    const schoolName = sch?.short_name
+      ? `[${sch.short_name}] ${sch.name_en}`
+      : (sch?.name_en ?? '?')
+    return {
+      application_id: a.id,
+      school_name: schoolName,
+      program_name: prg?.program_name ?? null,
+      already_forked: forkedAppIds.has(a.id),
+    }
+  })
+
   // Current word_quota balance for this student (latest balance_after)
   const { data: lastLedger } = await supabase
     .from('word_quota_ledger')
@@ -109,11 +163,27 @@ export default async function MasterEditorPage({
             <p className="mt-1 text-sm text-muted-foreground">{master.description}</p>
           ) : null}
         </div>
-        <div className="text-right">
-          <p className="text-xs text-muted-foreground">字數餘額</p>
-          <p className="text-xl font-bold tabular-nums">
-            {remainingQuota === null ? '—' : remainingQuota.toLocaleString('zh-TW')}
-          </p>
+        <div className="flex items-start gap-3">
+          {canEdit && master.current_version_id ? (
+            <ForkVariantDialog
+              studentId={params.id}
+              masterId={master.id}
+              sourceMasterVersionId={master.current_version_id}
+              applications={forkApplicationOptions}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <GitFork size={14} className="mr-1.5" />
+                  Fork to School
+                </Button>
+              }
+            />
+          ) : null}
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">字數餘額</p>
+            <p className="text-xl font-bold tabular-nums">
+              {remainingQuota === null ? '—' : remainingQuota.toLocaleString('zh-TW')}
+            </p>
+          </div>
         </div>
       </header>
 
@@ -124,6 +194,66 @@ export default async function MasterEditorPage({
         remainingQuota={remainingQuota}
         canEdit={canEdit}
       />
+
+      {variants && variants.length > 0 ? (
+        <section>
+          <h2 className="mb-2 text-base font-semibold">學校客製版(Variants)</h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            {variants.map((v) => {
+              const ver = v.current_version_id ? variantVersionMap.get(v.current_version_id) : null
+              const sch = (
+                v.application as {
+                  school: { name_en: string; short_name: string | null } | null
+                  program: { program_name: string } | null
+                } | null
+              )?.school
+              const prg = (
+                v.application as {
+                  school: { name_en: string; short_name: string | null } | null
+                  program: { program_name: string } | null
+                } | null
+              )?.program
+              const schoolDisplay = sch?.short_name
+                ? `[${sch.short_name}] ${sch.name_en}`
+                : (sch?.name_en ?? '?')
+              return (
+                <Link
+                  key={v.id}
+                  href={`/students/${params.id}/documents/${master.id}/variants/${v.id}`}
+                  className="block"
+                >
+                  <Card className="transition-colors hover:border-primary">
+                    <CardContent className="space-y-1.5 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{schoolDisplay}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {ver ? `V${ver.version_number}` : '—'}
+                        </span>
+                      </div>
+                      {prg?.program_name ? (
+                        <p className="text-xs text-muted-foreground">{prg.program_name}</p>
+                      ) : null}
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          字數{' '}
+                          <span className="tabular-nums text-foreground">
+                            {ver ? ver.word_count.toLocaleString('zh-TW') : 0}
+                          </span>
+                        </span>
+                        {v.is_finalized ? (
+                          <Badge variant="secondary" className="text-xs">
+                            已 finalize
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-2 text-base font-semibold">版本歷史</h2>
