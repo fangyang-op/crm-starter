@@ -53,9 +53,45 @@ export async function createDeal(input: DealInput): Promise<DealActionResult> {
     return { ok: false, error: `建立成交失敗:${(error as { message: string }).message}` }
   }
 
+  // Auto-flip the student's status to "已成交" (code='closed_won') if it's
+  // not already there. Best-effort — if the closed_won row was renamed
+  // or deactivated by an admin, or if the student is already closed_won,
+  // we silently skip. The SD function rejects no-op transitions on its own.
+  await maybeAutoCloseStudentStatus(parsed.data.student_id)
+
   revalidatePath(`/students/${parsed.data.student_id}`)
   revalidatePath('/students')
   return { ok: true, id: data as unknown as string }
+}
+
+async function maybeAutoCloseStudentStatus(studentId: string): Promise<void> {
+  const supabase = createClient()
+
+  const { data: student } = await supabase
+    .from('students')
+    .select('status_id')
+    .eq('id', studentId)
+    .maybeSingle()
+  const currentStatusId = (student as { status_id?: string | null } | null)?.status_id ?? null
+  if (!currentStatusId) return
+
+  const { data: closedWon } = await supabase
+    .from('student_statuses' as never)
+    .select('id')
+    .eq('code' as never, 'closed_won' as never)
+    .maybeSingle()
+  const closedWonId = (closedWon as { id?: string } | null)?.id ?? null
+  if (!closedWonId || closedWonId === currentStatusId) return
+
+  // Skip silently on any error — the deal already exists, this is a UX nicety.
+  await supabase.rpc(
+    'change_student_status' as never,
+    {
+      p_id: studentId,
+      p_new_status_id: closedWonId,
+      p_note: '建立成交後自動設定',
+    } as never,
+  )
 }
 
 export async function updateDeal(dealId: string, input: DealInput): Promise<DealActionResult> {
