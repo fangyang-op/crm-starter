@@ -1,7 +1,6 @@
 import { Pencil, Plus } from 'lucide-react'
 
-import { CreateDealDialog } from '@/components/students/create-deal-dialog'
-import { EditDealDialog } from '@/components/students/edit-deal-dialog'
+import { DealFormSheet } from '@/components/students/deal-form-sheet'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,12 +43,16 @@ export async function StudentDeals({
       .select('*, plan:service_plans!inner(code, name)')
       .eq('student_id', studentId)
       .order('signed_at', { ascending: false }),
+    // Fetch ALL plans (not just active) so the edit form can render a deal
+    // that references a now-deactivated plan; the form keeps the inactive
+    // ones visible (marked "已停用") and the DB function allows the original
+    // plan to remain on edit.
     supabase
       .from('service_plans')
       .select(
-        'id, code, name, base_price, currency, included_school_count, included_word_quota, is_active',
+        'id, code, name, base_price, currency, included_school_count, included_word_quota, is_active, display_order',
       )
-      .eq('is_active', true)
+      .order('is_active', { ascending: false })
       .order('display_order'),
     supabase.from('addon_pricing').select('type, unit_price, is_active').eq('is_active', true),
     supabase
@@ -69,36 +72,55 @@ export async function StudentDeals({
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name || p.full_name]))
   const referrerMap = new Map((referrers ?? []).map((r) => [r.id, r.name]))
 
+  const planOptions = (plans ?? []).map((p) => ({
+    id: p.id,
+    code: p.code,
+    name: p.name,
+    base_price: Number(p.base_price),
+    currency: p.currency,
+    included_school_count: p.included_school_count,
+    included_word_quota: p.included_word_quota,
+    is_active: p.is_active,
+  }))
+
   const extraSchoolPrice = Number(addons?.find((a) => a.type === 'extra_school')?.unit_price ?? 0)
   const extraWordPricePer1000 = Number(
     addons?.find((a) => a.type === 'extra_word_per_1000')?.unit_price ?? 0,
   )
 
-  // Fetch splits for each deal
   const dealIds = (deals ?? []).map((d) => d.id)
+  type SplitRow = {
+    id: string
+    deal_id: string
+    role_in_deal: string
+    recipient_user_id: string | null
+    recipient_referrer_id: string | null
+    percentage: number
+    amount: number
+    notes: string | null
+  }
   const { data: splits } =
     dealIds.length > 0
       ? await supabase.from('deal_commission_splits').select('*').in('deal_id', dealIds)
-      : { data: [] as Array<Record<string, unknown>> }
-  const splitsByDeal = new Map<string, typeof splits>()
-  for (const s of (splits ?? []) as Array<Record<string, unknown>>) {
-    const did = s.deal_id as string
-    const arr = splitsByDeal.get(did) ?? ([] as never)
-    arr.push(s as never)
-    splitsByDeal.set(did, arr)
+      : { data: [] as SplitRow[] }
+  const splitsByDeal = new Map<string, SplitRow[]>()
+  for (const s of (splits ?? []) as SplitRow[]) {
+    const arr = splitsByDeal.get(s.deal_id) ?? []
+    arr.push(s)
+    splitsByDeal.set(s.deal_id, arr)
   }
 
+  // For the create dialog, only show active plans (no point in selling a
+  // deactivated plan to a new customer).
+  const activePlanOptions = planOptions.filter((p) => p.is_active)
+
   const createButton = canCreate ? (
-    <CreateDealDialog
+    <DealFormSheet
+      mode="create"
       studentId={studentId}
       studentName={studentName}
       defaultConsultantId={defaultConsultantId}
-      plans={
-        (plans ?? []).map((p) => ({
-          ...p,
-          base_price: Number(p.base_price),
-        })) as never
-      }
+      plans={activePlanOptions}
       consultants={consultants}
       referrers={referrerOptions}
       extraSchoolPrice={extraSchoolPrice}
@@ -126,15 +148,11 @@ export async function StudentDeals({
     <div className="space-y-4">
       {canCreate ? <div className="flex justify-end">{createButton}</div> : null}
       {deals.map((d) => {
-        const dealSplits = (splitsByDeal.get(d.id) ?? []) as Array<{
-          id: string
-          role_in_deal: string
-          recipient_user_id: string | null
-          recipient_referrer_id: string | null
-          percentage: number
-          amount: number
-          notes: string | null
-        }>
+        const dealSplits = splitsByDeal.get(d.id) ?? []
+        const editPlanOptions = activePlanOptions.some((p) => p.id === d.plan_id)
+          ? activePlanOptions
+          : // include the deal's plan even if it's been deactivated
+            [...activePlanOptions, ...planOptions.filter((p) => p.id === d.plan_id)]
         return (
           <Card key={d.id}>
             <CardHeader className="flex flex-row items-start justify-between gap-3">
@@ -157,15 +175,37 @@ export async function StudentDeals({
                   </Badge>
                 </div>
                 {canEdit ? (
-                  <EditDealDialog
-                    dealId={d.id}
+                  <DealFormSheet
+                    mode="edit"
                     studentId={studentId}
-                    initial={{
+                    studentName={studentName}
+                    defaultConsultantId={defaultConsultantId}
+                    plans={editPlanOptions}
+                    consultants={consultants}
+                    referrers={referrerOptions}
+                    extraSchoolPrice={extraSchoolPrice}
+                    extraWordPricePer1000={extraWordPricePer1000}
+                    existing={{
+                      id: d.id,
+                      plan_id: d.plan_id,
+                      extra_school_count: d.extra_school_count,
+                      extra_word_quota: d.extra_word_quota,
+                      discount_amount: Number(d.discount_amount),
+                      discount_reason: d.discount_reason,
                       signed_at: d.signed_at,
                       contract_no: d.contract_no,
                       payment_status: d.payment_status as (typeof PAYMENT_STATUS_VALUES)[number],
-                      discount_reason: d.discount_reason,
                       notes: d.notes,
+                      splits: dealSplits.map((s) => ({
+                        role_in_deal: s.role_in_deal as
+                          | 'primary_consultant'
+                          | 'referrer'
+                          | 'manager_bonus',
+                        recipient_user_id: s.recipient_user_id,
+                        recipient_referrer_id: s.recipient_referrer_id,
+                        percentage: Number(s.percentage),
+                        notes: s.notes,
+                      })),
                     }}
                     trigger={
                       <Button variant="ghost" size="icon" aria-label="編輯成交">
@@ -212,7 +252,7 @@ export async function StudentDeals({
                             · {recipient}
                           </span>
                           <span className="tabular-nums">
-                            {s.percentage}% ·{' '}
+                            {Number(s.percentage)}% ·{' '}
                             <span className="text-muted-foreground">
                               {d.currency} {Number(s.amount).toLocaleString('zh-TW')}
                             </span>

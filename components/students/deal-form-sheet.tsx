@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 
-import { createDeal } from '@/app/(dashboard)/students/[id]/deals/actions'
+import { createDeal, updateDeal } from '@/app/(dashboard)/students/[id]/deals/actions'
 import {
   PAYMENT_STATUS_VALUES,
   SPLIT_ROLE_LABELS,
@@ -50,7 +50,31 @@ type PlanOption = {
 type ConsultantOption = { id: string; name: string }
 type ReferrerOption = { id: string; name: string }
 
+type ExistingSplit = {
+  role_in_deal: 'primary_consultant' | 'referrer' | 'manager_bonus'
+  recipient_user_id: string | null
+  recipient_referrer_id: string | null
+  percentage: number
+  notes: string | null
+}
+
+type ExistingDeal = {
+  id: string
+  plan_id: string
+  extra_school_count: number
+  extra_word_quota: number
+  discount_amount: number
+  discount_reason: string | null
+  signed_at: string
+  contract_no: string | null
+  payment_status: (typeof PAYMENT_STATUS_VALUES)[number]
+  notes: string | null
+  splits: ExistingSplit[]
+}
+
 type Props = {
+  mode: 'create' | 'edit'
+  existing?: ExistingDeal
   studentId: string
   studentName: string
   defaultConsultantId: string | null
@@ -72,7 +96,70 @@ function todayInTaipei(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' })
 }
 
-export function CreateDealDialog({
+type BonusRow = { id: string; userId: string; percentage: number; notes: string }
+
+function deriveInitialState(
+  existing: ExistingDeal | undefined,
+  defaultConsultantId: string | null,
+) {
+  if (!existing) {
+    return {
+      planId: '',
+      extraSchool: 0,
+      extraWord: 0,
+      discount: 0,
+      discountReason: '',
+      signedAt: todayInTaipei(),
+      contractNo: '',
+      paymentStatus: 'pending' as const,
+      notes: '',
+      hasReferrer: false,
+      primaryUserId: defaultConsultantId ?? '',
+      primaryPct: 100,
+      referrerType: 'referrer' as const,
+      referrerUserId: '',
+      referrerReferrerId: '',
+      referrerPct: 0,
+      bonusRows: [] as BonusRow[],
+    }
+  }
+
+  const primary = existing.splits.find((s) => s.role_in_deal === 'primary_consultant')
+  const referrer = existing.splits.find((s) => s.role_in_deal === 'referrer')
+  const bonuses = existing.splits.filter((s) => s.role_in_deal === 'manager_bonus')
+  const referrerType: 'user' | 'referrer' =
+    referrer && referrer.recipient_referrer_id ? 'referrer' : 'user'
+
+  return {
+    planId: existing.plan_id,
+    extraSchool: existing.extra_school_count,
+    extraWord: existing.extra_word_quota,
+    discount: existing.discount_amount,
+    discountReason: existing.discount_reason ?? '',
+    signedAt: existing.signed_at,
+    contractNo: existing.contract_no ?? '',
+    paymentStatus: existing.payment_status,
+    notes: existing.notes ?? '',
+    hasReferrer: !!referrer,
+    primaryUserId: primary?.recipient_user_id ?? defaultConsultantId ?? '',
+    primaryPct: primary?.percentage ?? 100,
+    referrerType,
+    referrerUserId: referrer && referrer.recipient_user_id ? referrer.recipient_user_id : '',
+    referrerReferrerId:
+      referrer && referrer.recipient_referrer_id ? referrer.recipient_referrer_id : '',
+    referrerPct: referrer?.percentage ?? 0,
+    bonusRows: bonuses.map((b, i) => ({
+      id: `bonus-${i}`,
+      userId: b.recipient_user_id ?? '',
+      percentage: b.percentage,
+      notes: b.notes ?? '',
+    })),
+  }
+}
+
+export function DealFormSheet({
+  mode,
+  existing,
   studentId,
   studentName,
   defaultConsultantId,
@@ -87,51 +174,57 @@ export function CreateDealDialog({
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
 
-  // Form state — managed by useState because react-hook-form's array controls
-  // make the splits UX harder to read. We validate on submit via server action.
-  const [planId, setPlanId] = useState<string>('')
-  const [extraSchool, setExtraSchool] = useState(0)
-  const [extraWord, setExtraWord] = useState(0)
-  const [discount, setDiscount] = useState(0)
-  const [discountReason, setDiscountReason] = useState('')
-  const [signedAt, setSignedAt] = useState(todayInTaipei())
-  const [contractNo, setContractNo] = useState('')
-  const [paymentStatus, setPaymentStatus] =
-    useState<(typeof PAYMENT_STATUS_VALUES)[number]>('pending')
-  const [notes, setNotes] = useState('')
+  const initial = useMemo(
+    () => deriveInitialState(existing, defaultConsultantId),
+    [existing, defaultConsultantId],
+  )
 
-  const [hasReferrer, setHasReferrer] = useState(false)
-  const [primaryUserId, setPrimaryUserId] = useState<string>(defaultConsultantId ?? '')
-  const [primaryPct, setPrimaryPct] = useState(100)
-  const [referrerType, setReferrerType] = useState<'user' | 'referrer'>('referrer')
-  const [referrerUserId, setReferrerUserId] = useState<string>('')
-  const [referrerReferrerId, setReferrerReferrerId] = useState<string>('')
-  const [referrerPct, setReferrerPct] = useState(0)
-  type BonusRow = { id: string; userId: string; percentage: number; notes: string }
-  const [bonusRows, setBonusRows] = useState<BonusRow[]>([])
+  const [planId, setPlanId] = useState(initial.planId)
+  const [extraSchool, setExtraSchool] = useState(initial.extraSchool)
+  const [extraWord, setExtraWord] = useState(initial.extraWord)
+  const [discount, setDiscount] = useState(initial.discount)
+  const [discountReason, setDiscountReason] = useState(initial.discountReason)
+  const [signedAt, setSignedAt] = useState(initial.signedAt)
+  const [contractNo, setContractNo] = useState(initial.contractNo)
+  const [paymentStatus, setPaymentStatus] = useState<(typeof PAYMENT_STATUS_VALUES)[number]>(
+    initial.paymentStatus,
+  )
+  const [notes, setNotes] = useState(initial.notes)
+  const [hasReferrer, setHasReferrer] = useState(initial.hasReferrer)
+  const [primaryUserId, setPrimaryUserId] = useState(initial.primaryUserId)
+  const [primaryPct, setPrimaryPct] = useState(initial.primaryPct)
+  const [referrerType, setReferrerType] = useState<'user' | 'referrer'>(initial.referrerType)
+  const [referrerUserId, setReferrerUserId] = useState(initial.referrerUserId)
+  const [referrerReferrerId, setReferrerReferrerId] = useState(initial.referrerReferrerId)
+  const [referrerPct, setReferrerPct] = useState(initial.referrerPct)
+  const [bonusRows, setBonusRows] = useState<BonusRow[]>(initial.bonusRows)
 
   const reset = () => {
-    setPlanId('')
-    setExtraSchool(0)
-    setExtraWord(0)
-    setDiscount(0)
-    setDiscountReason('')
-    setSignedAt(todayInTaipei())
-    setContractNo('')
-    setPaymentStatus('pending')
-    setNotes('')
-    setHasReferrer(false)
-    setPrimaryUserId(defaultConsultantId ?? '')
-    setPrimaryPct(100)
-    setReferrerType('referrer')
-    setReferrerUserId('')
-    setReferrerReferrerId('')
-    setReferrerPct(0)
-    setBonusRows([])
+    const fresh = deriveInitialState(existing, defaultConsultantId)
+    setPlanId(fresh.planId)
+    setExtraSchool(fresh.extraSchool)
+    setExtraWord(fresh.extraWord)
+    setDiscount(fresh.discount)
+    setDiscountReason(fresh.discountReason)
+    setSignedAt(fresh.signedAt)
+    setContractNo(fresh.contractNo)
+    setPaymentStatus(fresh.paymentStatus)
+    setNotes(fresh.notes)
+    setHasReferrer(fresh.hasReferrer)
+    setPrimaryUserId(fresh.primaryUserId)
+    setPrimaryPct(fresh.primaryPct)
+    setReferrerType(fresh.referrerType)
+    setReferrerUserId(fresh.referrerUserId)
+    setReferrerReferrerId(fresh.referrerReferrerId)
+    setReferrerPct(fresh.referrerPct)
+    setBonusRows(fresh.bonusRows)
   }
 
-  // When toggling "有轉介人?", default to 65/35 split.
+  // When user toggles "有轉介人?" while interacting (not on initial mount),
+  // default to 65/35. Don't clobber pre-filled values from edit mode.
+  const [referrerToggleTouched, setReferrerToggleTouched] = useState(false)
   useEffect(() => {
+    if (!referrerToggleTouched) return
     if (hasReferrer) {
       setPrimaryPct(65)
       setReferrerPct(35)
@@ -212,28 +305,30 @@ export function CreateDealDialog({
       })
     }
 
+    const payload = {
+      student_id: studentId,
+      plan_id: planId,
+      extra_school_count: extraSchool,
+      extra_word_quota: extraWord,
+      discount_amount: discount,
+      discount_reason: discountReason || null,
+      signed_at: signedAt,
+      contract_no: contractNo || null,
+      payment_status: paymentStatus,
+      notes: notes || null,
+      splits,
+    }
+
     startTransition(async () => {
-      const result = await createDeal({
-        student_id: studentId,
-        plan_id: planId,
-        extra_school_count: extraSchool,
-        extra_word_quota: extraWord,
-        discount_amount: discount,
-        discount_reason: discountReason || null,
-        signed_at: signedAt,
-        contract_no: contractNo || null,
-        payment_status: paymentStatus,
-        notes: notes || null,
-        splits,
-      })
+      const result =
+        mode === 'create' ? await createDeal(payload) : await updateDeal(existing!.id, payload)
 
       if (!result.ok) {
         toast.error(result.error)
         return
       }
-      toast.success('成交建立成功')
+      toast.success(mode === 'create' ? '成交建立成功' : '成交已更新')
       setOpen(false)
-      reset()
       router.refresh()
     })
   }
@@ -243,15 +338,23 @@ export function CreateDealDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
-        if (!next) reset()
+        if (!next) {
+          reset()
+          setReferrerToggleTouched(false)
+        }
       }}
     >
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>建立成交 — {studentName}</SheetTitle>
+          <SheetTitle>
+            {mode === 'create' ? '建立成交' : '編輯成交'} — {studentName}
+          </SheetTitle>
           <SheetDescription>
             金額由伺服器以方案 + 加購單價計算為準,UI 顯示僅為預覽。
+            {mode === 'edit'
+              ? ' 編輯成交會自動重算拆分金額,並對字數帳本寫一筆 adjustment 反映方案/加購字數的變動。'
+              : ''}
           </SheetDescription>
         </SheetHeader>
 
@@ -274,6 +377,7 @@ export function CreateDealDialog({
                   plans.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       [{p.code}] {p.name} — {p.currency} {p.base_price.toLocaleString('zh-TW')}
+                      {p.is_active ? '' : '(已停用)'}
                     </SelectItem>
                   ))
                 )}
@@ -434,7 +538,6 @@ export function CreateDealDialog({
               </div>
             </div>
 
-            {/* Primary consultant row */}
             <div className="grid grid-cols-[1fr_100px] gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">
@@ -470,7 +573,13 @@ export function CreateDealDialog({
             </div>
 
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={hasReferrer} onCheckedChange={(v) => setHasReferrer(Boolean(v))} />
+              <Checkbox
+                checked={hasReferrer}
+                onCheckedChange={(v) => {
+                  setReferrerToggleTouched(true)
+                  setHasReferrer(Boolean(v))
+                }}
+              />
               有轉介人
             </label>
 
@@ -545,7 +654,6 @@ export function CreateDealDialog({
               </div>
             ) : null}
 
-            {/* Manager bonuses */}
             {bonusRows.map((b, idx) => (
               <div key={b.id} className="grid grid-cols-[1fr_100px_36px] items-end gap-2">
                 <div>
@@ -638,7 +746,13 @@ export function CreateDealDialog({
             取消
           </Button>
           <Button onClick={handleSubmit} disabled={pending}>
-            {pending ? '建立中…' : '建立成交'}
+            {pending
+              ? mode === 'create'
+                ? '建立中…'
+                : '儲存中…'
+              : mode === 'create'
+                ? '建立成交'
+                : '儲存變更'}
           </Button>
         </SheetFooter>
       </SheetContent>

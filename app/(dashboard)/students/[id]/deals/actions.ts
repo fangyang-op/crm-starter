@@ -2,12 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import {
-  dealEditSchema,
-  dealSchema,
-  type DealEditInput,
-  type DealInput,
-} from '@/lib/validators/deal'
+import { dealSchema, type DealInput } from '@/lib/validators/deal'
 import { createClient } from '@/lib/supabase/server'
 
 export type DealActionResult =
@@ -63,28 +58,36 @@ export async function createDeal(input: DealInput): Promise<DealActionResult> {
   return { ok: true, id: data as unknown as string }
 }
 
-export async function updateDeal(
-  dealId: string,
-  studentId: string,
-  input: DealEditInput,
-): Promise<DealActionResult> {
+export async function updateDeal(dealId: string, input: DealInput): Promise<DealActionResult> {
   if (!dealId) return { ok: false, error: '缺少成交 id' }
 
-  const parsed = dealEditSchema.safeParse(input)
+  const parsed = dealSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
   const supabase = createClient()
+  // Migration 0011 — full edit: cascades to splits + word_quota_ledger.
   const { error } = await supabase.rpc(
     'update_deal' as never,
     {
       p_id: dealId,
+      p_plan_id: parsed.data.plan_id,
+      p_extra_school_count: parsed.data.extra_school_count,
+      p_extra_word_quota: parsed.data.extra_word_quota,
+      p_discount_amount: parsed.data.discount_amount,
+      p_discount_reason: parsed.data.discount_reason ?? null,
       p_signed_at: parsed.data.signed_at,
       p_contract_no: parsed.data.contract_no ?? null,
       p_payment_status: parsed.data.payment_status,
-      p_discount_reason: parsed.data.discount_reason ?? null,
       p_notes: parsed.data.notes ?? null,
+      p_splits: parsed.data.splits.map((s) => ({
+        role_in_deal: s.role_in_deal,
+        recipient_user_id: s.recipient_user_id ?? null,
+        recipient_referrer_id: s.recipient_referrer_id ?? null,
+        percentage: s.percentage,
+        notes: s.notes ?? null,
+      })),
     } as never,
   )
 
@@ -92,6 +95,6 @@ export async function updateDeal(
     return { ok: false, error: `更新失敗:${(error as { message: string }).message}` }
   }
 
-  revalidatePath(`/students/${studentId}`)
+  revalidatePath(`/students/${parsed.data.student_id}`)
   return { ok: true, id: dealId }
 }
