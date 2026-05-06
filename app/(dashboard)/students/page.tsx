@@ -86,7 +86,11 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
         </Button>
       </header>
 
-      <form action="/students" method="get" className="flex flex-wrap items-end gap-3">
+      <form
+        action="/students"
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sm"
+      >
         <div className="grid gap-1.5">
           <label htmlFor="q" className="text-xs text-muted-foreground">
             搜尋
@@ -130,16 +134,16 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
       </form>
 
       {error ? (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
           載入失敗:{error.message}
         </div>
       ) : !students || students.length === 0 ? (
-        <div className="rounded-md border border-dashed p-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed bg-card p-12 text-center text-sm text-muted-foreground shadow-sm">
           尚無學生資料{q || status ? '(目前的篩選沒有結果)' : '。點右上「新增學生」開始'}
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
