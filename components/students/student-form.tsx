@@ -53,7 +53,12 @@ export type StudentFormProps = {
   initialValues?: Partial<StudentInput>
   currentUserId: string
   currentUserRole: UserRole
+  /** Used for the lead_source_user_id picker (any internal staff). */
   consultantOptions: Array<{ id: string; name: string }>
+  /** Filtered to people whose department='frontend' (incl. admin if set). */
+  frontendConsultantOptions: Array<{ id: string; name: string }>
+  /** Filtered to people whose department='backend' (incl. admin if set). */
+  backendConsultantOptions: Array<{ id: string; name: string }>
   referrerOptions: Array<{ id: string; name: string; type: string }>
   leadSourceOptions: LeadSourceOption[]
   onSubmit: (input: StudentInput) => Promise<ActionResult>
@@ -122,6 +127,8 @@ export function StudentForm({
   currentUserId,
   currentUserRole,
   consultantOptions,
+  frontendConsultantOptions,
+  backendConsultantOptions,
   referrerOptions,
   leadSourceOptions,
   onSubmit,
@@ -589,11 +596,17 @@ export function StudentForm({
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="__none__">尚未指派</SelectItem>
-                          {consultantOptions.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
+                          {frontendConsultantOptions.length === 0 ? (
+                            <SelectItem value="__empty__" disabled>
+                              尚無前端部門人員
                             </SelectItem>
-                          ))}
+                          ) : (
+                            frontendConsultantOptions.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -617,11 +630,17 @@ export function StudentForm({
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="__none__">尚未指派</SelectItem>
-                          {consultantOptions.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
+                          {backendConsultantOptions.length === 0 ? (
+                            <SelectItem value="__empty__" disabled>
+                              尚無後端部門人員
                             </SelectItem>
-                          ))}
+                          ) : (
+                            backendConsultantOptions.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -30,7 +30,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, display_name')
+    .select('id, full_name, display_name, department')
     .eq('is_active', true)
     .order('full_name')
 
@@ -38,6 +38,13 @@ export default async function EditStudentPage({ params }: { params: { id: string
     id: p.id,
     name: p.display_name || p.full_name,
   }))
+
+  const frontendConsultantOptions = (profiles ?? [])
+    .filter((p) => p.department === 'frontend')
+    .map((p) => ({ id: p.id, name: p.display_name || p.full_name }))
+  const backendConsultantOptions = (profiles ?? [])
+    .filter((p) => p.department === 'backend')
+    .map((p) => ({ id: p.id, name: p.display_name || p.full_name }))
 
   const { data: referrers } = await supabase
     .from('referrers')
@@ -112,6 +119,8 @@ export default async function EditStudentPage({ params }: { params: { id: string
         currentUserId={user.id}
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
+        frontendConsultantOptions={frontendConsultantOptions}
+        backendConsultantOptions={backendConsultantOptions}
         referrerOptions={referrerOptions}
         leadSourceOptions={leadSourceOptions}
         onSubmit={updateThisStudent}

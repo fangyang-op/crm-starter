@@ -20,7 +20,7 @@ export default async function NewStudentPage() {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, display_name')
+    .select('id, full_name, display_name, department')
     .eq('is_active', true)
     .order('full_name')
 
@@ -28,6 +28,16 @@ export default async function NewStudentPage() {
     id: p.id,
     name: p.display_name || p.full_name,
   }))
+
+  // Frontend / backend 顧問 dropdowns are filtered by department.
+  // Admins / 營運 / 未指定部門 won't appear in either — set their department
+  // to make them assignable.
+  const frontendConsultantOptions = (profiles ?? [])
+    .filter((p) => p.department === 'frontend')
+    .map((p) => ({ id: p.id, name: p.display_name || p.full_name }))
+  const backendConsultantOptions = (profiles ?? [])
+    .filter((p) => p.department === 'backend')
+    .map((p) => ({ id: p.id, name: p.display_name || p.full_name }))
 
   const { data: referrers } = await supabase
     .from('referrers')
@@ -76,6 +86,8 @@ export default async function NewStudentPage() {
         currentUserId={user.id}
         currentUserRole={me.role as UserRole}
         consultantOptions={consultantOptions}
+        frontendConsultantOptions={frontendConsultantOptions}
+        backendConsultantOptions={backendConsultantOptions}
         referrerOptions={referrerOptions}
         leadSourceOptions={leadSourceOptions}
         onSubmit={createStudent}
