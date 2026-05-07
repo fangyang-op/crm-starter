@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>放洋留學 — 轉介人 Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand:       #C7315C;
+  --brand-dark:  #A82249;
+  --brand-light: #FBE9EF;
+  --brand-mid:   #F0BDCB;
+
+  --bg:          #F4F5F7;
+  --surface:     #FFFFFF;
+  --surface-2:   #F9FAFB;
+
+  --ink:         #111827;
+  --ink-2:       #374151;
+  --ink-3:       #6B7280;
+  --ink-4:       #9CA3AF;
+  --ink-5:       #D1D5DB;
+  --ink-6:       #E5E7EB;
+  --ink-7:       #F3F4F6;
+
+  --green:       #059669;
+  --green-light: #D1FAE5;
+  --blue:        #2563EB;
+  --blue-light:  #DBEAFE;
+  --amber:       #D97706;
+  --amber-light: #FEF3C7;
+  --slate:       #64748B;
+  --slate-light: #F1F5F9;
+
+  --sidebar-w:    220px;
+  --sidebar-collapsed: 60px;
+  --topbar-h:     56px;
+
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --shadow-xs: 0 1px 2px rgba(17,24,39,.05);
+  --shadow-sm: 0 1px 4px rgba(17,24,39,.07), 0 1px 2px rgba(17,24,39,.04);
+  --shadow:    0 4px 16px rgba(17,24,39,.08), 0 2px 6px rgba(17,24,39,.04);
+  --shadow-lg: 0 12px 40px rgba(17,24,39,.13), 0 4px 12px rgba(17,24,39,.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  background: linear-gradient(135deg, #0F172A 0%, #1E1B2E 50%, #2D1520 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-box {
+  width: 400px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 2.5rem 2.25rem;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp .4s ease;
+}
+@keyframes fadeUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.login-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.login-logo-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  background: var(--brand);
+  border-radius: 12px;
+  margin-bottom: .75rem;
+}
+.login-logo-mark svg { color: white; }
+.login-brand {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 1.05rem; font-weight: 700;
+  color: var(--ink);
+  display: block;
+}
+.login-brand-sub {
+  font-size: .75rem; color: var(--ink-3);
+  margin-top: .2rem;
+  display: block;
+}
+.login-title {
+  font-size: .9rem; font-weight: 600;
+  color: var(--ink); margin-bottom: 1.5rem;
+}
+.lf-group { display: flex; flex-direction: column; gap: .35rem; margin-bottom: 1rem; }
+.lf-label { font-size: .78rem; font-weight: 500; color: var(--ink-2); }
+.lf-input {
+  padding: .625rem .875rem;
+  border: 1.5px solid var(--ink-6);
+  border-radius: var(--radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: .875rem; color: var(--ink);
+  background: var(--surface-2);
+  outline: none;
+  transition: border .15s, box-shadow .15s;
+}
+.lf-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+  background: var(--surface);
+}
+.lf-hint {
+  font-size: .72rem; color: var(--ink-4);
+  margin-top: .75rem;
+  text-align: center;
+}
+.btn-login {
+  width: 100%; padding: .7rem;
+  background: var(--brand); color: white;
+  border: none; border-radius: var(--radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: .875rem; font-weight: 600;
+  cursor: pointer; margin-top: .5rem;
+  transition: background .15s, transform .1s;
+}
+.btn-login:hover { background: var(--brand-dark); }
+.btn-login:active { transform: scale(.99); }
+
+/* ═══════════════════════════════
+   SIDEBAR
+═══════════════════════════════ */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--ink-6);
+  display: flex; flex-direction: column;
+  transition: width .22s ease, min-width .22s ease;
+  overflow: hidden;
+  position: relative; z-index: 10;
+  box-shadow: var(--shadow-xs);
+}
+#sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+  min-width: var(--sidebar-collapsed);
+}
+
+.sidebar-top {
+  height: var(--topbar-h);
+  display: flex; align-items: center;
+  padding: 0 .875rem;
+  border-bottom: 1px solid var(--ink-6);
+  gap: .625rem;
+  overflow: hidden;
+}
+.sidebar-logo-mark {
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: var(--brand);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sidebar-logo-mark svg { color: white; }
+.sidebar-logo-text {
+  font-family: 'Noto Serif TC', serif;
+  font-size: .875rem; font-weight: 700;
+  white-space: nowrap; overflow: hidden;
+  transition: opacity .15s;
+  line-height: 1.2;
+}
+.sidebar-logo-text small { font-size: .62rem; color: var(--ink-3); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 400; display: block; }
+#sidebar.collapsed .sidebar-logo-text { opacity: 0; width: 0; }
+
+.sidebar-nav { flex: 1; padding: .75rem .5rem; display: flex; flex-direction: column; gap: .15rem; overflow: hidden; }
+.nav-item {
+  display: flex; align-items: center; gap: .625rem;
+  padding: .55rem .625rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer; white-space: nowrap;
+  font-size: .82rem; font-weight: 500;
+  color: var(--ink-3);
+  transition: background .13s, color .13s;
+  position: relative;
+}
+.nav-item:hover { background: var(--ink-7); color: var(--ink); }
+.nav-item.active { background: var(--brand-light); color: var(--brand); }
+.nav-item svg { flex-shrink: 0; width: 16px; height: 16px; }
+.nav-label { overflow: hidden; transition: opacity .15s, width .15s; }
+#sidebar.collapsed .nav-label { opacity: 0; width: 0; }
+.nav-badge {
+  margin-left: auto; flex-shrink: 0;
+  background: var(--brand); color: white;
+  border-radius: 10px; padding: 1px 7px;
+  font-size: .65rem; font-weight: 700;
+  transition: opacity .15s;
+}
+#sidebar.collapsed .nav-badge { opacity: 0; }
+
+.sidebar-divider { height: 1px; background: var(--ink-6); margin: .4rem .5rem; }
+
+.sidebar-bottom {
+  padding: .75rem .5rem;
+  border-top: 1px solid var(--ink-6);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: .625rem;
+  padding: .5rem .625rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.user-avatar {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--brand-light);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 700; color: var(--brand);
+}
+.user-info { overflow: hidden; }
+.user-name { font-size: .78rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.user-org  { font-size: .68rem; color: var(--ink-3); white-space: nowrap; }
+#sidebar.collapsed .user-info { opacity: 0; width: 0; }
+
+.sidebar-toggle {
+  position: absolute; top: 50%; right: -12px;
+  transform: translateY(-50%);
+  width: 24px; height: 24px;
+  background: var(--surface);
+  border: 1px solid var(--ink-6);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background .13s;
+  z-index: 20;
+}
+.sidebar-toggle:hover { background: var(--brand-light); }
+.sidebar-toggle svg { transition: transform .22s; color: var(--ink-3); }
+#sidebar.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+
+/* tooltip when collapsed */
+#sidebar.collapsed .nav-item:hover::after {
+  content: attr(data-label);
+  position: absolute; left: calc(100% + 12px); top: 50%;
+  transform: translateY(-50%);
+  background: var(--ink); color: white;
+  font-size: .72rem; padding: .3rem .65rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+
+/* ═══════════════════════════════
+   MAIN
+═══════════════════════════════ */
+#main {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: all .22s ease;
+}
+
+/* TOPBAR */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--ink-6);
+  display: flex; align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-size: 1rem; font-weight: 700; color: var(--ink);
+  flex: 1;
+}
+.topbar-actions { display: flex; align-items: center; gap: .75rem; }
+.topbar-tag {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .35rem .75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--ink-6);
+  border-radius: 20px;
+  font-size: .75rem; color: var(--ink-3);
+}
+.topbar-tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.topbar-bell {
+  width: 32px; height: 32px;
+  background: var(--surface-2); border: 1px solid var(--ink-6);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--ink-3);
+  position: relative;
+}
+.topbar-bell:hover { background: var(--ink-7); }
+.bell-dot {
+  position: absolute; top: 5px; right: 5px;
+  width: 7px; height: 7px;
+  background: var(--brand); border-radius: 50%;
+  border: 1.5px solid white;
+}
+
+/* CONTENT */
+.content {
+  flex: 1; overflow-y: auto;
+  padding: 1.5rem;
+}
+.page { display: none; animation: fadeIn .2s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ═══════════════════════════════
+   COMPONENTS
+═══════════════════════════════ */
+
+/* Page header */
+.ph { margin-bottom: 1.5rem; }
+.ph-title { font-size: 1.05rem; font-weight: 700; color: var(--ink); margin-bottom: .25rem; }
+.ph-sub   { font-size: .8rem; color: var(--ink-3); line-height: 1.6; }
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--ink-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ink-6);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-header-title { font-size: .85rem; font-weight: 600; color: var(--ink); }
+.card-body { padding: 1.25rem; }
+
+/* Form */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .875rem 1.125rem; }
+.form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.fg { display: flex; flex-direction: column; gap: .35rem; }
+.fg.span2 { grid-column: span 2; }
+.fg label { font-size: .77rem; font-weight: 600; color: var(--ink-2); }
+.fg label .req { color: var(--brand); margin-left: 1px; }
+
+.fi, .fs, .ft {
+  padding: .575rem .825rem;
+  border: 1.5px solid var(--ink-6);
+  border-radius: var(--radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: .845rem; color: var(--ink);
+  background: var(--surface-2);
+  outline: none;
+  transition: border .15s, box-shadow .15s, background .15s;
+}
+.fi:focus, .fs:focus, .ft:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+  background: var(--surface);
+}
+.fs {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .8rem center;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+.ft { resize: vertical; min-height: 72px; }
+.fi-hint { font-size: .7rem; color: var(--ink-4); margin-top: .2rem; }
+
+/* Section label inside form */
+.fs-label {
+  font-size: .67rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-4);
+  margin: 1.25rem 0 .875rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--ink-7);
+}
+
+/* Agree box */
+.agree-box {
+  display: flex; align-items: flex-start; gap: .625rem;
+  padding: .875rem 1rem;
+  background: var(--brand-light);
+  border: 1.5px solid var(--brand-mid);
+  border-radius: var(--radius-sm);
+  margin: 1.25rem 0;
+  cursor: pointer;
+}
+.agree-box input[type=checkbox] {
+  width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px;
+  accent-color: var(--brand);
+}
+.agree-box label {
+  font-size: .78rem; line-height: 1.65; color: var(--ink-2); cursor: pointer;
+}
+.agree-box label strong { color: var(--brand); }
+
+/* Info strip */
+.info-strip {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .65rem .875rem;
+  background: var(--surface-2); border: 1px solid var(--ink-6);
+  border-radius: var(--radius-sm);
+  font-size: .76rem; color: var(--ink-3);
+  margin-bottom: 1.25rem;
+}
+
+/* Btn primary */
+.btn-primary {
+  padding: .65rem 1.5rem;
+  background: var(--brand); color: white;
+  border: none; border-radius: var(--radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: .845rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .13s, transform .1s, box-shadow .13s;
+  box-shadow: 0 1px 3px rgba(199,49,92,.25);
+}
+.btn-primary:hover { background: var(--brand-dark); box-shadow: 0 3px 10px rgba(199,49,92,.3); }
+.btn-primary:active { transform: scale(.99); }
+.btn-primary:disabled { background: var(--ink-5); box-shadow: none; cursor: not-allowed; }
+.btn-full { width: 100%; }
+
+/* Stats row */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: .875rem;
+  margin-bottom: 1.25rem;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--ink-6);
+  border-radius: var(--radius);
+  padding: .875rem 1rem;
+  box-shadow: var(--shadow-xs);
+}
+.stat-label { font-size: .7rem; font-weight: 600; color: var(--ink-3); margin-bottom: .35rem; letter-spacing: .03em; }
+.stat-val { font-size: 1.55rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.stat-val.brand { color: var(--brand); }
+.stat-val.green { color: var(--green); }
+.stat-val.blue  { color: var(--blue); }
+.stat-sub { font-size: .68rem; color: var(--ink-4); margin-top: .2rem; }
+
+/* Table */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: .6rem 1rem; text-align: left;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-4); background: var(--surface-2);
+  border-bottom: 1px solid var(--ink-6);
+  white-space: nowrap;
+}
+td {
+  padding: .8rem 1rem; font-size: .8rem;
+  border-bottom: 1px solid var(--ink-7);
+  color: var(--ink-2); vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .1s; cursor: default; }
+tbody tr:hover td { background: var(--ink-7); }
+.td-name { font-weight: 600; color: var(--ink); font-size: .82rem; }
+.td-sub  { font-size: .7rem; color: var(--ink-4); margin-top: .1rem; }
+.td-mono { font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
+.td-mono.green  { color: var(--green); font-weight: 600; }
+.td-mono.muted  { color: var(--ink-5); }
+.td-mono.pend   { color: var(--ink-3); }
+
+/* Badge */
+.badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .2rem .6rem; border-radius: 20px;
+  font-size: .68rem; font-weight: 700;
+  white-space: nowrap;
+}
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+.b-pending { background: var(--slate-light); color: var(--slate); }
+.b-pending::before { background: var(--slate); }
+.b-active  { background: var(--blue-light);  color: var(--blue); }
+.b-active::before  { background: var(--blue); }
+.b-deal    { background: var(--green-light); color: var(--green); }
+.b-deal::before    { background: var(--green); }
+.b-settled { background: var(--amber-light); color: var(--amber); }
+.b-settled::before { background: var(--amber); }
+
+/* Earnings banner */
+.earn-banner {
+  background: var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem;
+  position: relative; overflow: hidden;
+}
+.earn-banner::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 70% 50%, rgba(199,49,92,.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+.earn-left { z-index: 1; }
+.earn-eyebrow { font-size: .7rem; color: rgba(255,255,255,.45); font-weight: 500; margin-bottom: .35rem; }
+.earn-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.1rem; font-weight: 500; color: white;
+  letter-spacing: -.02em;
+}
+.earn-amount .cur { font-size: .95rem; opacity: .6; margin-right: .2rem; }
+.earn-sub { font-size: .72rem; color: rgba(255,255,255,.4); margin-top: .35rem; }
+.earn-right { z-index: 1; }
+.earn-box {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--radius);
+  padding: .875rem 1.125rem;
+  min-width: 210px;
+}
+.earn-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .76rem;
+  padding: .2rem 0;
+}
+.earn-row .el { color: rgba(255,255,255,.45); }
+.earn-row .er { font-family: 'JetBrains Mono', monospace; color: rgba(255,255,255,.85); font-weight: 500; }
+.earn-row .er.g { color: #6EE7B7; }
+.earn-divider { border: none; border-top: 1px solid rgba(255,255,255,.1); margin: .35rem 0; }
+
+/* Formula note */
+.formula {
+  display: flex; align-items: flex-start; gap: .5rem;
+  padding: .75rem .875rem;
+  background: var(--amber-light); border: 1px solid #FDE68A;
+  border-radius: var(--radius-sm);
+  font-size: .75rem; color: var(--amber);
+  line-height: 1.6; margin-bottom: 1.25rem;
+}
+.formula strong { font-weight: 700; }
+
+/* Success modal */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(17,24,39,.45);
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: 2rem 1.75rem; max-width: 380px; width: 92%;
+  text-align: center; box-shadow: var(--shadow-lg);
+  animation: popIn .22s ease;
+}
+@keyframes popIn { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--green-light);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.125rem; font-size: 1.4rem;
+}
+.modal h3 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+.modal p  { font-size: .78rem; color: var(--ink-3); line-height: 1.65; margin-bottom: 1.25rem; }
+.btn-outline {
+  padding: .575rem 1.5rem;
+  background: none; color: var(--ink-2);
+  border: 1.5px solid var(--ink-6); border-radius: var(--radius-sm);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: background .13s, border .13s;
+}
+.btn-outline:hover { background: var(--ink-7); border-color: var(--ink-5); }
+
+/* Custom dropdown */
+.custom-select-wrap { position: relative; }
+.custom-select-wrap .cs-display {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .575rem .825rem;
+  border: 1.5px solid var(--ink-6);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: .845rem; color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  transition: border .15s, box-shadow .15s;
+}
+.custom-select-wrap .cs-display:hover,
+.custom-select-wrap.open .cs-display {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+  background: var(--surface);
+}
+.cs-arrow { color: var(--ink-4); transition: transform .2s; }
+.custom-select-wrap.open .cs-arrow { transform: rotate(180deg); }
+.cs-dropdown {
+  display: none;
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 200;
+  background: var(--surface);
+  border: 1.5px solid var(--ink-6);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: dropDown .15s ease;
+}
+@keyframes dropDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.custom-select-wrap.open .cs-dropdown { display: block; }
+.cs-option {
+  padding: .6rem .875rem;
+  font-size: .82rem; color: var(--ink-2);
+  cursor: pointer;
+  transition: background .1s;
+}
+.cs-option:hover { background: var(--brand-light); color: var(--brand); }
+.cs-option.selected { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+
+@media (max-width: 700px) {
+  .form-grid, .form-grid.cols3 { grid-template-columns: 1fr; }
+  .fg.span2 { grid-column: span 1; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .earn-banner { flex-direction: column; gap: 1.25rem; }
+  .earn-right { width: 100%; }
+  .earn-box { min-width: unset; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ LOGIN ════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3L4 7.5V14.5L11 19L18 14.5V7.5L11 3Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><circle cx="11" cy="11" r="2.5" fill="white"/></svg>
+      </div>
+      <span class="login-brand">放洋留學</span>
+      <span class="login-brand-sub">轉介人 Portal</span>
+    </div>
+    <div class="login-title">登入您的帳號</div>
+    <div class="lf-group">
+      <label class="lf-label">Email</label>
+      <input class="lf-input" type="email" placeholder="your@email.com" id="li-email" value="wang@apta-edu.com">
+    </div>
+    <div class="lf-group">
+      <label class="lf-label">密碼</label>
+      <input class="lf-input" type="password" placeholder="••••••••" id="li-pw" value="demo1234">
+    </div>
+    <button class="btn-login" onclick="doLogin()">登入</button>
+    <div class="lf-hint">測試帳號已預填，直接點登入即可</div>
+  </div>
+</div>
+
+<!-- ════════════ APP ════════════ -->
+<div id="app" style="display:none;flex:1;display:none;overflow:hidden;width:100%">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-top">
+    <div class="sidebar-logo-mark">
+      <svg width="15" height="15" viewBox="0 0 22 22" fill="none"><path d="M11 3L4 7.5V14.5L11 19L18 14.5V7.5L11 3Z" stroke="white" stroke-width="2" stroke-linejoin="round"/><circle cx="11" cy="11" r="2.5" fill="white"/></svg>
+    </div>
+    <div class="sidebar-logo-text">
+      放洋留學
+      <small>轉介人 Portal</small>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPage('referral',this)" data-label="轉介新學生">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/></svg>
+      <span class="nav-label">轉介新學生</span>
+    </div>
+    <div class="nav-item" onclick="showPage('pipeline',this)" data-label="轉介追蹤">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="4" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="4" cy="12" r="1.5"/><path d="M7.5 4h7M7.5 8h5M7.5 12h3"/></svg>
+      <span class="nav-label">轉介追蹤</span>
+      <span class="nav-badge" id="nb-pipeline">4</span>
+    </div>
+    <div class="nav-item" onclick="showPage('earnings',this)" data-label="績效獎金">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v5M6.5 9.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S9 8 8 8s-1.5-.67-1.5-1.5S7.17 5 8 5"/></svg>
+      <span class="nav-label">績效獎金</span>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="nav-item" onclick="alert('帳號設定功能即將上線')" data-label="帳號設定">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5.5" r="2.5"/><path d="M2.5 13c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5"/></svg>
+      <span class="nav-label">帳號設定</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-user">
+      <div class="user-avatar">王</div>
+      <div class="user-info">
+        <div class="user-name">王小明</div>
+        <div class="user-org">亞太教育集團</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 2L3.5 6l4 4"/></svg>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">轉介新學生</div>
+    <div class="topbar-actions">
+      <div class="topbar-tag"><span class="dot"></span>帳號正常</div>
+      <div class="topbar-bell" onclick="alert('暫無新通知')">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4.5 4.5 0 0 0-4.5 4.5V9L2 11h12l-1.5-2V6.5A4.5 4.5 0 0 0 8 2Z"/><path d="M6.5 13a1.5 1.5 0 0 0 3 0"/></svg>
+        <span class="bell-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── PAGE: REFERRAL FORM ── -->
+    <div class="page active" id="page-referral">
+      <div class="ph">
+        <div class="ph-title">轉介新學生</div>
+        <div class="ph-sub">填寫完整資料後送出，前端主管將在 2 個工作天內完成配單並通知您。</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">學生資料</span></div>
+        <div class="card-body">
+
+          <div class="fs-label">基本資料</div>
+          <div class="form-grid">
+            <div class="fg">
+              <label>學生姓名<span class="req">*</span></label>
+              <input class="fi" type="text" placeholder="中文全名" id="f-name">
+            </div>
+            <div class="fg">
+              <label>Email<span class="req">*</span></label>
+              <input class="fi" type="email" placeholder="student@example.com" id="f-email">
+            </div>
+            <div class="fg">
+              <label>聯絡電話<span class="req">*</span></label>
+              <input class="fi" type="tel" placeholder="0912-345-678" id="f-phone">
+            </div>
+            <div class="fg">
+              <label>方便聯繫時間</label>
+              <div class="custom-select-wrap" id="cs-time">
+                <div class="cs-display" onclick="toggleCS('cs-time')">
+                  <span class="cs-val">請選擇</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-time',this)">平日上午（09:00–12:00）</div>
+                  <div class="cs-option" onclick="selectCS('cs-time',this)">平日下午（12:00–18:00）</div>
+                  <div class="cs-option" onclick="selectCS('cs-time',this)">平日晚上（18:00–21:00）</div>
+                  <div class="cs-option" onclick="selectCS('cs-time',this)">週末皆可</div>
+                  <div class="cs-option" onclick="selectCS('cs-time',this)">隨時皆可</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fs-label">留學意向</div>
+          <div class="form-grid">
+            <div class="fg">
+              <label>目標國家<span class="req">*</span></label>
+              <div class="custom-select-wrap" id="cs-country">
+                <div class="cs-display" onclick="toggleCS('cs-country')">
+                  <span class="cs-val">請選擇</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇺🇸 美國</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇬🇧 英國</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇦🇺 澳洲</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇨🇦 加拿大</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇸🇬 新加坡</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">🇯🇵 日本</div>
+                  <div class="cs-option" onclick="selectCS('cs-country',this)">其他</div>
+                </div>
+              </div>
+            </div>
+            <div class="fg">
+              <label>目標學位<span class="req">*</span></label>
+              <div class="custom-select-wrap" id="cs-degree">
+                <div class="cs-display" onclick="toggleCS('cs-degree')">
+                  <span class="cs-val">請選擇</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-degree',this)">碩士（Master's）</div>
+                  <div class="cs-option" onclick="selectCS('cs-degree',this)">博士（PhD）</div>
+                  <div class="cs-option" onclick="selectCS('cs-degree',this)">大學（Bachelor's）</div>
+                  <div class="cs-option" onclick="selectCS('cs-degree',this)">語言學校</div>
+                </div>
+              </div>
+            </div>
+            <div class="fg">
+              <label>目標科系 / 領域</label>
+              <input class="fi" type="text" placeholder="e.g. 資訊工程、商管、教育" id="f-field">
+            </div>
+            <div class="fg">
+              <label>預計出發時間<span class="req">*</span></label>
+              <div class="custom-select-wrap" id="cs-intake">
+                <div class="cs-display" onclick="toggleCS('cs-intake')">
+                  <span class="cs-val">請選擇</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-intake',this)">2025 秋季（Sep）</div>
+                  <div class="cs-option" onclick="selectCS('cs-intake',this)">2026 春季（Jan）</div>
+                  <div class="cs-option" onclick="selectCS('cs-intake',this)">2026 秋季（Sep）</div>
+                  <div class="cs-option" onclick="selectCS('cs-intake',this)">2027 或以後</div>
+                  <div class="cs-option" onclick="selectCS('cs-intake',this)">尚未確定</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fs-label">學術成績（選填，有助配單）</div>
+          <div class="form-grid cols3">
+            <div class="fg">
+              <label>大學 GPA</label>
+              <input class="fi" type="text" inputmode="decimal" placeholder="e.g. 3.7" id="f-gpa">
+              <div class="fi-hint">4.0 制</div>
+            </div>
+            <div class="fg">
+              <label>英文成績類型</label>
+              <div class="custom-select-wrap" id="cs-eng">
+                <div class="cs-display" onclick="toggleCS('cs-eng')">
+                  <span class="cs-val">尚無</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-eng',this);updateEngHint()">尚無</div>
+                  <div class="cs-option" onclick="selectCS('cs-eng',this);updateEngHint()">TOEFL iBT</div>
+                  <div class="cs-option" onclick="selectCS('cs-eng',this);updateEngHint()">IELTS</div>
+                  <div class="cs-option" onclick="selectCS('cs-eng',this);updateEngHint()">Duolingo</div>
+                </div>
+              </div>
+            </div>
+            <div class="fg">
+              <label id="eng-score-lbl">英文總分</label>
+              <input class="fi" type="text" inputmode="decimal" placeholder="—" id="f-eng" disabled>
+              <div class="fi-hint" id="eng-hint"></div>
+            </div>
+          </div>
+
+          <div class="fs-label">顧問偏好</div>
+          <div class="form-grid">
+            <div class="fg">
+              <label>指定放洋顧問</label>
+              <div class="custom-select-wrap" id="cs-advisor">
+                <div class="cs-display" onclick="toggleCS('cs-advisor')">
+                  <span class="cs-val">無指定（系統分配）</span>
+                  <svg class="cs-arrow" width="11" height="7" viewBox="0 0 11 7" fill="none"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="cs-dropdown">
+                  <div class="cs-option" onclick="selectCS('cs-advisor',this)">無指定（系統分配）</div>
+                  <div class="cs-option" onclick="selectCS('cs-advisor',this)">Aaron</div>
+                  <div class="cs-option" onclick="selectCS('cs-advisor',this)">Emily</div>
+                  <div class="cs-option" onclick="selectCS('cs-advisor',this)">Verita</div>
+                </div>
+              </div>
+            </div>
+            <div class="fg">
+              <label>備註</label>
+              <textarea class="ft" placeholder="學生特殊情況或需求⋯⋯" id="f-notes" style="min-height:60px"></textarea>
+            </div>
+          </div>
+
+          <div class="info-strip" style="margin-top:1.25rem">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#6B7280" stroke-width="1.2"/><path d="M7 6v4M7 4v.5" stroke="#6B7280" stroke-width="1.2" stroke-linecap="round"/></svg>
+            拆分規則：成交金額 × 35% 撥予轉介單位；您本人從中另抽 2%。
+          </div>
+
+          <div class="agree-box">
+            <input type="checkbox" id="f-agree">
+            <label for="f-agree">我已閱讀並同意遵守放洋留學之轉介拆分規則。我確認以上填寫的學生資料均經當事人知情同意。本次轉介成交後，<strong>績效獎金依規則自動結算</strong>。</label>
+          </div>
+
+          <button class="btn-primary btn-full" id="submit-btn" onclick="submitForm()">送出轉介申請</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: PIPELINE ── -->
+    <div class="page" id="page-pipeline">
+      <div class="ph">
+        <div class="ph-title">轉介追蹤</div>
+        <div class="ph-sub">所有轉介學生的現況，從送出申請到確認成交。</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">全部轉介</div>
+          <div class="stat-val">6</div>
+          <div class="stat-sub">歷史累計</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">待配單</div>
+          <div class="stat-val brand" id="pending-count">1</div>
+          <div class="stat-sub">需配單</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">諮詢中</div>
+          <div class="stat-val blue">2</div>
+          <div class="stat-sub">進行中</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">已成交</div>
+          <div class="stat-val green">3</div>
+          <div class="stat-sub">含結算中</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">轉介學生名單</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>學生</th>
+                <th>目標</th>
+                <th>入學時間</th>
+                <th>配對顧問</th>
+                <th>狀態</th>
+                <th style="text-align:right">成交金額</th>
+                <th style="text-align:right">預計獎金</th>
+              </tr>
+            </thead>
+            <tbody id="pipeline-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAGE: EARNINGS ── -->
+    <div class="page" id="page-earnings">
+      <div class="ph">
+        <div class="ph-title">績效獎金</div>
+        <div class="ph-sub">系統依成交金額自動結算。成交金額 × 35%（單位分潤）× 2%（個人獎金）。</div>
+      </div>
+
+      <div class="earn-banner">
+        <div class="earn-left">
+          <div class="earn-eyebrow">累計已入帳獎金</div>
+          <div class="earn-amount"><span class="cur">NT$</span>5,120</div>
+          <div class="earn-sub">2 筆已結算 · 1 筆待撥（NT$ 2,680）</div>
+        </div>
+        <div class="earn-right">
+          <div class="earn-box">
+            <div class="earn-row"><span class="el">總成交金額</span><span class="er">NT$ 390,000</span></div>
+            <hr class="earn-divider">
+            <div class="earn-row"><span class="el">× 35%（單位分潤）</span><span class="er">NT$ 136,500</span></div>
+            <div class="earn-row"><span class="el">× 2%（個人獎金）</span><span class="er">NT$ 7,800</span></div>
+            <hr class="earn-divider">
+            <div class="earn-row"><span class="el">已結算</span><span class="er g">NT$ 5,120</span></div>
+            <div class="earn-row"><span class="el">待撥</span><span class="er" style="opacity:.5">NT$ 2,680</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M7 6v4M7 4v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        計算公式：<strong>個人獎金 = 成交金額 × 35% × 2%</strong>。以 NT$ 134,000 為例：134,000 × 0.35 × 0.02 = NT$ 938。待撥款項於學生確認簽約後 30 天內撥付。
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">獎金明細</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>學生</th>
+                <th>成交日</th>
+                <th style="text-align:right">成交金額</th>
+                <th style="text-align:right">單位分潤 35%</th>
+                <th style="text-align:right">個人獎金 2%</th>
+                <th>狀態</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="td-name">吳采薇</div></td>
+                <td>2025/03/05</td>
+                <td class="td-mono" style="text-align:right">134,000</td>
+                <td class="td-mono" style="text-align:right;color:var(--ink-4)">46,900</td>
+                <td class="td-mono pend" style="text-align:right">2,680</td>
+                <td><span class="badge b-deal">待撥付</span></td>
+              </tr>
+              <tr>
+                <td><div class="td-name">張靖雯</div></td>
+                <td>2025/01/22</td>
+                <td class="td-mono" style="text-align:right">98,000</td>
+                <td class="td-mono" style="text-align:right;color:var(--ink-4)">34,300</td>
+                <td class="td-mono green" style="text-align:right">1,960</td>
+                <td><span class="badge b-settled">已撥付</span></td>
+              </tr>
+              <tr>
+                <td><div class="td-name">劉宇軒</div></td>
+                <td>2024/11/08</td>
+                <td class="td-mono" style="text-align:right">158,000</td>
+                <td class="td-mono" style="text-align:right;color:var(--ink-4)">55,300</td>
+                <td class="td-mono green" style="text-align:right">3,160</td>
+                <td><span class="badge b-settled">已撥付</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- SUCCESS MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <h3>轉介申請已送出！</h3>
+    <p>已收到 <strong id="modal-name"></strong> 的轉介資料，前端主管將在 2 個工作天內完成配單並通知您。</p>
+    <button class="btn-outline" onclick="closeModal()">確認</button>
+  </div>
+</div>
+
+<script>
+/* ─── Data ─── */
+const students = [
+  { name:'陳柏宇', date:'2025/07/12', target:'🇺🇸 美國 · 碩士', intake:'2026 秋季', advisor:'—', status:'pending',  amount:null,    reward:null },
+  { name:'林思妤', date:'2025/06/03', target:'🇬🇧 英國 · 碩士', intake:'2026 秋季', advisor:'Emily', status:'active', amount:null, reward:null },
+  { name:'黃子謙', date:'2025/04/18', target:'🇦🇺 澳洲 · 碩士', intake:'2026 春季', advisor:'Aaron', status:'active', amount:null, reward:null },
+  { name:'吳采薇', date:'2025/03/05', target:'🇺🇸 美國 · 碩士', intake:'2026 秋季', advisor:'Verita', status:'deal', amount:134000, reward:2680 },
+  { name:'張靖雯', date:'2025/01/22', target:'🇬🇧 英國 · 碩士', intake:'2025 秋季', advisor:'Aaron', status:'settled', amount:98000, reward:1960 },
+  { name:'劉宇軒', date:'2024/11/08', target:'🇨🇦 加拿大 · 碩士', intake:'2025 秋季', advisor:'Emily', status:'settled', amount:158000, reward:3160 },
+];
+
+const STATUS_MAP = {
+  pending: { cls:'b-pending', label:'待配單' },
+  active:  { cls:'b-active',  label:'諮詢中' },
+  deal:    { cls:'b-deal',    label:'已成交' },
+  settled: { cls:'b-settled', label:'已結算' },
+};
+
+function renderPipeline() {
+  const tbody = document.getElementById('pipeline-tbody');
+  tbody.innerHTML = students.map(s => {
+    const st = STATUS_MAP[s.status];
+    const amt = s.amount ? 'NT$ ' + s.amount.toLocaleString() : '—';
+    const rwd = s.reward ? `NT$ ${s.reward.toLocaleString()} ${s.status==='settled'?'<span style="color:var(--green)">✓</span>':'<span style="font-size:.68rem;color:var(--ink-4)">待撥</span>'}` : '—';
+    const rwdCls = s.reward ? (s.status==='settled' ? 'td-mono green' : 'td-mono pend') : 'td-mono muted';
+    return `<tr>
+      <td><div class="td-name">${s.name}</div><div class="td-sub">${s.date} 送出</div></td>
+      <td>${s.target}</td>
+      <td>${s.intake}</td>
+      <td>${s.advisor}</td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+      <td class="td-mono" style="text-align:right">${amt}</td>
+      <td class="${rwdCls}" style="text-align:right">${rwd}</td>
+    </tr>`;
+  }).join('');
+}
+renderPipeline();
+
+/* ─── Login ─── */
+function doLogin() {
+  const em = document.getElementById('li-email').value.trim();
+  const pw = document.getElementById('li-pw').value.trim();
+  if (!em || !pw) { alert('請填入 Email 和密碼'); return; }
+  document.getElementById('login-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+  app.style.flex = '1';
+  app.style.width = '100%';
+  app.style.overflow = 'hidden';
+  app.style.height = '100vh';
+}
+
+/* ─── Sidebar ─── */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+/* ─── Nav ─── */
+const titles = { referral:'轉介新學生', pipeline:'轉介追蹤', earnings:'績效獎金' };
+function showPage(id, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id];
+}
+
+/* ─── Custom Select ─── */
+function toggleCS(id) {
+  const wrap = document.getElementById(id);
+  const wasOpen = wrap.classList.contains('open');
+  document.querySelectorAll('.custom-select-wrap.open').forEach(w => w.classList.remove('open'));
+  if (!wasOpen) wrap.classList.add('open');
+}
+function selectCS(id, el) {
+  const wrap = document.getElementById(id);
+  wrap.querySelector('.cs-val').textContent = el.textContent;
+  wrap.querySelectorAll('.cs-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  wrap.classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.custom-select-wrap')) {
+    document.querySelectorAll('.custom-select-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+
+/* ─── Eng score hint ─── */
+function updateEngHint() {
+  const val = document.getElementById('cs-eng').querySelector('.cs-val').textContent.trim();
+  const fi = document.getElementById('f-eng');
+  const lbl = document.getElementById('eng-score-lbl');
+  const hint = document.getElementById('eng-hint');
+  const map = {
+    'TOEFL iBT': ['TOEFL iBT 總分','滿分 120 分','120'],
+    'IELTS':     ['IELTS 總分',    '滿分 9.0 分','9.0'],
+    'Duolingo':  ['Duolingo 總分', '滿分 160 分','160'],
+  };
+  if (map[val]) {
+    lbl.textContent = map[val][0];
+    hint.textContent = map[val][1];
+    fi.placeholder = map[val][2];
+    fi.disabled = false;
+  } else {
+    lbl.textContent = '英文總分';
+    hint.textContent = '';
+    fi.placeholder = '—';
+    fi.disabled = true;
+    fi.value = '';
+  }
+}
+
+/* ─── Submit ─── */
+function submitForm() {
+  const name    = document.getElementById('f-name').value.trim();
+  const email   = document.getElementById('f-email').value.trim();
+  const phone   = document.getElementById('f-phone').value.trim();
+  const country = document.getElementById('cs-country').querySelector('.cs-val').textContent.trim();
+  const degree  = document.getElementById('cs-degree').querySelector('.cs-val').textContent.trim();
+  const intake  = document.getElementById('cs-intake').querySelector('.cs-val').textContent.trim();
+  const agree   = document.getElementById('f-agree').checked;
+
+  if (!name || !email || !phone) { alert('請填寫姓名、Email、電話'); return; }
+  if (country === '請選擇') { alert('請選擇目標國家'); return; }
+  if (degree  === '請選擇') { alert('請選擇目標學位'); return; }
+  if (intake  === '請選擇') { alert('請選擇預計出發時間'); return; }
+  if (!agree) { alert('請勾選同意拆分規則'); return; }
+
+  // Add to pipeline
+  students.unshift({ name, date: new Date().toLocaleDateString('zh-TW').replaceAll('/','/'), target:`${country} · ${degree}`, intake, advisor:'—', status:'pending', amount:null, reward:null });
+  renderPipeline();
+  const pc = document.getElementById('pending-count');
+  pc.textContent = parseInt(pc.textContent) + 1;
+  const nb = document.getElementById('nb-pipeline');
+  nb.textContent = parseInt(nb.textContent) + 1;
+
+  document.getElementById('modal-name').textContent = name;
+  document.getElementById('modal').classList.add('open');
+
+  // Reset
+  ['f-name','f-email','f-phone','f-gpa','f-eng','f-notes','f-field'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['cs-time','cs-country','cs-degree','cs-intake','cs-advisor'].forEach(id => {
+    document.getElementById(id).querySelector('.cs-val').textContent = '請選擇';
+    document.getElementById(id).querySelectorAll('.cs-option').forEach(o => o.classList.remove('selected'));
+  });
+  document.getElementById('cs-eng').querySelector('.cs-val').textContent = '尚無';
+  document.getElementById('f-agree').checked = false;
+  updateEngHint();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+</script>
+</body>
+</html>
