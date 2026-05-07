@@ -57,8 +57,47 @@ export async function updateApplicationStatus(
     return { ok: false, error: `更新狀態失敗:${(error as { message: string }).message}` }
   }
 
+  // Auto-flip the student's status to 入學準備 (code='pre_departure') when an
+  // application moves to 確定入學 (status='enrolled'). Best-effort, same
+  // pattern as deals/actions.ts → maybeAutoCloseStudentStatus: a noisy failure
+  // here would make the user think the application status update itself
+  // failed, when it didn't. The SD function rejects no-ops, so calling it
+  // when the student is already pre_departure is harmless.
+  if (parsed.data.status === 'enrolled') {
+    await maybeAutoMoveStudentToPreDeparture(studentId)
+  }
+
   revalidatePath(`/students/${studentId}`)
   return { ok: true }
+}
+
+async function maybeAutoMoveStudentToPreDeparture(studentId: string): Promise<void> {
+  const supabase = createClient()
+
+  const { data: student } = await supabase
+    .from('students')
+    .select('status_id')
+    .eq('id', studentId)
+    .maybeSingle()
+  const currentStatusId = (student as { status_id?: string | null } | null)?.status_id ?? null
+  if (!currentStatusId) return
+
+  const { data: preDeparture } = await supabase
+    .from('student_statuses' as never)
+    .select('id')
+    .eq('code' as never, 'pre_departure' as never)
+    .maybeSingle()
+  const preDepartureId = (preDeparture as { id?: string } | null)?.id ?? null
+  if (!preDepartureId || preDepartureId === currentStatusId) return
+
+  await supabase.rpc(
+    'change_student_status' as never,
+    {
+      p_id: studentId,
+      p_new_status_id: preDepartureId,
+      p_note: '申請學校確定入學後自動設定',
+    } as never,
+  )
 }
 
 export async function updateApplicationMeta(
