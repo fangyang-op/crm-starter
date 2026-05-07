@@ -19,7 +19,7 @@ import { isAdmin, ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata = { title: '用戶管理 — 留學代辦 CRM' }
+export const metadata = { title: '用戶管理 — 放洋全端 CRM 平台' }
 
 const ROLE_VALUES: UserRole[] = ['consultant', 'manager_frontend', 'manager_backend', 'admin']
 

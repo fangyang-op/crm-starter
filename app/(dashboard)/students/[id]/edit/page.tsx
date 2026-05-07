@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 
 import { updateStudent } from '../../actions'
 
-export const metadata = { title: '編輯學生 — 留學代辦 CRM' }
+export const metadata = { title: '編輯學生 — 放洋全端 CRM 平台' }
 
 export default async function EditStudentPage({ params }: { params: { id: string } }) {
   const supabase = createClient()

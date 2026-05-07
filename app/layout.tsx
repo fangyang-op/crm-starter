@@ -16,7 +16,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: '留學代辦 CRM',
+  title: '放洋全端 CRM 平台',
   description: '內部營運 CRM — 學生主檔、選校、申請、文件管理',
 }
 

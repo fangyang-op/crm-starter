@@ -22,7 +22,7 @@ import { STAGE_LABELS, statusBadgeClass } from '@/lib/constants/student-status'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata = { title: '學生狀態 — 留學代辦 CRM' }
+export const metadata = { title: '學生狀態 — 放洋全端 CRM 平台' }
 
 export default async function StudentStatusesPage() {
   const supabase = createClient()

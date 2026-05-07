@@ -16,7 +16,7 @@ import {
 import { REFERRER_TYPE_LABELS } from '@/lib/validators/referrer'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata = { title: '轉介人 — 留學代辦 CRM' }
+export const metadata = { title: '轉介人 — 放洋全端 CRM 平台' }
 
 export default async function ReferrersPage() {
   const supabase = createClient()

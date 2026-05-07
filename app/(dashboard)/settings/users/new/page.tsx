@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 
 import { NewUserForm } from './new-user-form'
 
-export const metadata = { title: '新增帳號 — 留學代辦 CRM' }
+export const metadata = { title: '新增帳號 — 放洋全端 CRM 平台' }
 
 export default async function NewUserPage() {
   const supabase = createClient()

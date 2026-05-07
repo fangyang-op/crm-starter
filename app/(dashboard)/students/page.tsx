@@ -23,7 +23,7 @@ type SearchParams = {
   page?: string
 }
 
-export const metadata = { title: '學生 — 留學代辦 CRM' }
+export const metadata = { title: '學生 — 放洋全端 CRM 平台' }
 
 export default async function StudentsListPage({ searchParams }: { searchParams: SearchParams }) {
   const supabase = createClient()

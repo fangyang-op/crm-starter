@@ -17,7 +17,7 @@ import {
 import { isAdmin, type UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata = { title: '服務方案 — 留學代辦 CRM' }
+export const metadata = { title: '服務方案 — 放洋全端 CRM 平台' }
 
 export default async function PlansPage() {
   const supabase = createClient()

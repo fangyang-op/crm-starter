@@ -114,8 +114,13 @@ export function Sidebar({ role }: { role: UserRole }) {
         )}
       >
         {collapsed ? null : (
-          <Link href="/" className="flex-1 truncate text-base font-semibold" title="留學代辦 CRM">
-            留學代辦 CRM
+          <Link
+            href="/"
+            className="flex flex-1 flex-col truncate leading-tight"
+            title="放洋全端 CRM 平台"
+          >
+            <span className="truncate text-[0.95rem] font-bold">放洋全端 CRM 平台</span>
+            <span className="truncate text-[0.7rem] text-muted-foreground">顧問資訊整合中心</span>
           </Link>
         )}
         <button
