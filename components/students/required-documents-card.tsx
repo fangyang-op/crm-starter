@@ -45,11 +45,30 @@ type Props = {
   canEdit: boolean
 }
 
-const STATUS_CONFIG: Record<RequiredDocItem['status'], { label: string; className: string }> = {
-  pending: { label: '待上傳', className: 'bg-slate-100 text-slate-700 border-slate-300' },
-  uploaded: { label: '已上傳', className: 'bg-blue-100 text-blue-700 border-blue-300' },
-  verified: { label: '已驗證', className: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-  rejected: { label: '退件', className: 'bg-rose-100 text-rose-700 border-rose-300' },
+const STATUS_CONFIG: Record<
+  RequiredDocItem['status'],
+  { label: string; className: string; dotClass: string }
+> = {
+  pending: {
+    label: '待上傳',
+    className: 'bg-slate-100 text-slate-700 border-slate-300',
+    dotClass: 'bg-slate-400',
+  },
+  uploaded: {
+    label: '已上傳',
+    className: 'bg-blue-100 text-blue-700 border-blue-300',
+    dotClass: 'bg-blue-500',
+  },
+  verified: {
+    label: '已驗證',
+    className: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+    dotClass: 'bg-emerald-500',
+  },
+  rejected: {
+    label: '退件',
+    className: 'bg-rose-100 text-rose-700 border-rose-300',
+    dotClass: 'bg-rose-500',
+  },
 }
 
 const CATEGORY_LABEL: Record<RequiredDocItem['category'], string> = {
@@ -337,6 +356,15 @@ function DocRow({
           disabled={!canEdit || pending}
           className="mt-0.5"
         />
+        {/* v1.1 §5: status dot moved before the label. Title attr keeps the
+            human-readable status label discoverable on hover for the
+            statuses (uploaded / verified / rejected) where colour alone
+            isn't enough. */}
+        <span
+          className={`mt-2 h-2 w-2 shrink-0 rounded-full ${cfg.dotClass}`}
+          title={cfg.label}
+          aria-label={cfg.label}
+        />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span
@@ -344,9 +372,6 @@ function DocRow({
             >
               {item.label_zh}
             </span>
-            <Badge variant="outline" className={cfg.className}>
-              {cfg.label}
-            </Badge>
             {justUploaded ? (
               <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600">
                 <Check size={12} /> 上傳成功
