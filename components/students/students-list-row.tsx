@@ -17,6 +17,9 @@ export type StudentRowData = {
   backend_consultant_name: string | null
   target: string
   created_at: string
+  /** v1.1 §3B: earliest deal signed_at, only set on the 待分配後端 tab.
+   *  `undefined` = column not displayed; `null` = displayed as —. */
+  deal_signed_at?: string | null
 }
 
 export function StudentsListRow({ student }: { student: StudentRowData }) {
@@ -54,6 +57,11 @@ export function StudentsListRow({ student }: { student: StudentRowData }) {
       <TableCell className="text-sm">{student.frontend_consultant_name ?? '—'}</TableCell>
       <TableCell className="text-sm">{student.backend_consultant_name ?? '—'}</TableCell>
       <TableCell className="text-sm text-muted-foreground">{student.target}</TableCell>
+      {student.deal_signed_at !== undefined ? (
+        <TableCell className="text-sm tabular-nums text-muted-foreground">
+          {student.deal_signed_at ?? '—'}
+        </TableCell>
+      ) : null}
       <TableCell className="text-right text-xs text-muted-foreground">
         {new Date(student.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}
       </TableCell>
