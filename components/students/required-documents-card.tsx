@@ -48,27 +48,31 @@ type Props = {
 
 const STATUS_CONFIG: Record<
   RequiredDocItem['status'],
-  { label: string; className: string; dotClass: string }
+  { label: string; className: string; dotClass: string; textClass: string }
 > = {
   pending: {
     label: '待上傳',
     className: 'bg-slate-100 text-slate-700 border-slate-300',
     dotClass: 'bg-slate-400',
+    textClass: 'text-slate-500',
   },
   uploaded: {
     label: '已上傳',
     className: 'bg-blue-100 text-blue-700 border-blue-300',
     dotClass: 'bg-blue-500',
+    textClass: 'text-blue-600',
   },
   verified: {
     label: '已驗證',
     className: 'bg-emerald-100 text-emerald-700 border-emerald-300',
     dotClass: 'bg-emerald-500',
+    textClass: 'text-emerald-600',
   },
   rejected: {
     label: '退件',
     className: 'bg-rose-100 text-rose-700 border-rose-300',
     dotClass: 'bg-rose-500',
+    textClass: 'text-rose-600',
   },
 }
 
@@ -357,15 +361,17 @@ function DocRow({
           disabled={!canEdit || pending}
           className="mt-0.5"
         />
-        {/* v1.1 §5: status dot moved before the label. Title attr keeps the
-            human-readable status label discoverable on hover for the
-            statuses (uploaded / verified / rejected) where colour alone
-            isn't enough. */}
+        {/* v1.2 §2: status dot + Chinese label side by side, sitting before
+            the document name. Order is now: checkbox → dot → status text →
+            document name. Each status has its own text colour matching the
+            dot, so the line reads at a glance even with multiple rows. */}
         <span
-          className={`mt-2 h-2 w-2 shrink-0 rounded-full ${cfg.dotClass}`}
-          title={cfg.label}
+          className={`mt-1.5 inline-flex shrink-0 items-center gap-1 ${cfg.textClass}`}
           aria-label={cfg.label}
-        />
+        >
+          <span className={`h-2 w-2 rounded-full ${cfg.dotClass}`} aria-hidden />
+          <span className="text-xs font-medium">{cfg.label}</span>
+        </span>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span
