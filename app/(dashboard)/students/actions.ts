@@ -30,6 +30,48 @@ export type PreliminaryScoreInput = {
   sub_scores?: Record<string, string | number>
 }
 
+export type DuplicatePhoneStudent = {
+  id: string
+  full_name: string
+  english_name: string | null
+  created_at: string
+  frontend_consultant_id: string | null
+  frontend_consultant_name: string | null
+}
+
+export type DuplicatePhoneResult =
+  | { ok: true; isDuplicate: false }
+  | { ok: true; isDuplicate: true; existingStudent: DuplicatePhoneStudent }
+  | { ok: false; error: string }
+
+/** v duplicate-prevention §2A — query the SD function find_duplicate_student_
+ *  by_phone (migration 0038). Returns at most one match. Server-only so we
+ *  can normalise the phone server-side and bypass RLS via SECURITY DEFINER. */
+export async function checkPhoneDuplicate(phone: string): Promise<DuplicatePhoneResult> {
+  if (!phone || phone.trim().length < 8) return { ok: true, isDuplicate: false }
+
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc(
+    'find_duplicate_student_by_phone' as never,
+    { p_phone: phone } as never,
+  )
+  if (error) {
+    return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
+  }
+  const rows = (data ?? []) as unknown as DuplicatePhoneStudent[]
+  if (rows.length === 0) return { ok: true, isDuplicate: false }
+  return { ok: true, isDuplicate: true, existingStudent: rows[0] }
+}
+
+/** Override info passed from the form when the consultant has eyeballed the
+ *  inline duplicate warning and clicked「確認為不同學生,繼續建立」. The
+ *  action will write an activity_log entry tagged
+ *  action='duplicate_phone_override' so 主管 (§4) can review. */
+export type DuplicateOverride = {
+  duplicateOfStudentId: string
+  phone: string
+}
+
 function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   for (const issue of err.issues) {
@@ -43,6 +85,7 @@ function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]>
 export async function createStudent(
   input: StudentInput,
   preliminaryScores?: PreliminaryScoreInput[],
+  duplicateOverride?: DuplicateOverride | null,
 ): Promise<ActionResult> {
   const parsed = createStudentSchema.safeParse(input)
   if (!parsed.success) {
@@ -115,6 +158,24 @@ export async function createStudent(
     entity_type: 'student',
     entity_id: data.id,
   })
+
+  // duplicate-prevention §2A — when the consultant explicitly chose to
+  // continue past an inline warning, log it so 主管 widget (§4) can review.
+  // Best-effort (non-fatal) for the same reason as student_created above.
+  if (duplicateOverride) {
+    await supabase.from('activity_log').insert({
+      student_id: data.id,
+      actor_id: user.id,
+      action: 'duplicate_phone_override',
+      entity_type: 'student',
+      entity_id: data.id,
+      payload: {
+        duplicate_of_student_id: duplicateOverride.duplicateOfStudentId,
+        phone: duplicateOverride.phone,
+        reason: 'confirmed_different_by_consultant',
+      },
+    })
+  }
 
   // Optional preliminary scores — best-effort. If a row fails (e.g. invalid
   // score_type), we keep going so the student creation isn't blocked. The

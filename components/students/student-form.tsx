@@ -1,9 +1,11 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertTriangle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
@@ -38,7 +40,13 @@ import {
   type StudentInput,
 } from '@/lib/validators/student'
 
-import type { ActionResult, PreliminaryScoreInput } from '@/app/(dashboard)/students/actions'
+import {
+  checkPhoneDuplicate,
+  type ActionResult,
+  type DuplicateOverride,
+  type DuplicatePhoneStudent,
+  type PreliminaryScoreInput,
+} from '@/app/(dashboard)/students/actions'
 
 export type LeadSourceOption = {
   id: string
@@ -65,6 +73,7 @@ export type StudentFormProps = {
   onSubmit: (
     input: StudentInput,
     preliminaryScores?: PreliminaryScoreInput[],
+    duplicateOverride?: DuplicateOverride | null,
   ) => Promise<ActionResult>
 }
 
@@ -156,6 +165,39 @@ export function StudentForm({
   const [prelimStdType, setPrelimStdType] = useState<'none' | 'gre' | 'gmat' | 'sat'>('none')
   const [prelimStdScore, setPrelimStdScore] = useState('')
 
+  // duplicate-prevention §2A: blur the phone field → server checks via SD
+  // function find_duplicate_student_by_phone (0038). If a row comes back we
+  // render an inline amber warning. The consultant can either jump to the
+  // existing student or click「確認為不同學生,繼續建立」which flips
+  // ignoreDuplicate and unblocks submit. Only relevant in create mode.
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicatePhoneStudent | null>(null)
+  const [ignoreDuplicate, setIgnoreDuplicate] = useState(false)
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false)
+  const initialPhone = initialValues?.phone ?? null
+
+  const handlePhoneBlur = async (value: string) => {
+    if (mode !== 'create') return
+    const trimmed = (value ?? '').trim()
+    if (trimmed.length < 8) {
+      setDuplicateWarning(null)
+      return
+    }
+    setCheckingDuplicate(true)
+    try {
+      const r = await checkPhoneDuplicate(trimmed)
+      if (r.ok && r.isDuplicate) {
+        setDuplicateWarning(r.existingStudent)
+        // New duplicate → reset the consultant's previous override so they
+        // have to acknowledge again (avoids accidental ignore-once-then-edit).
+        setIgnoreDuplicate(false)
+      } else {
+        setDuplicateWarning(null)
+      }
+    } finally {
+      setCheckingDuplicate(false)
+    }
+  }
+
   const leadSourceId = form.watch('lead_source_id')
   const currentSource = leadSourceOptions.find((o) => o.id === leadSourceId)
   const currentCode = currentSource?.code
@@ -192,9 +234,24 @@ export function StudentForm({
   }
 
   const handleSubmit = form.handleSubmit((data) => {
+    // §2A — block submit while a duplicate is detected and not yet
+    // confirmed. Consultant must explicitly press「確認為不同學生」first.
+    if (mode === 'create' && duplicateWarning && !ignoreDuplicate) {
+      toast.error('請先確認重複名單的處理方式')
+      return
+    }
+
     const scores = buildPreliminaryScores()
+    const override: DuplicateOverride | null =
+      mode === 'create' && duplicateWarning && ignoreDuplicate
+        ? {
+            duplicateOfStudentId: duplicateWarning.id,
+            phone: (data.phone ?? '').trim(),
+          }
+        : null
+
     startTransition(async () => {
-      const result = await onSubmit(data, scores.length > 0 ? scores : undefined)
+      const result = await onSubmit(data, scores.length > 0 ? scores : undefined, override)
       if (!result.ok) {
         toast.error(result.error)
         if (result.fieldErrors) {
@@ -204,6 +261,12 @@ export function StudentForm({
               message: messages.join(', '),
             })
           }
+        }
+        // §5 fallback: race / direct-API-bypass case — DB UNIQUE caught it
+        // even though the inline check didn't. Re-trigger the check so the
+        // amber warning renders instead of the bare toast.
+        if (result.code === 'DUPLICATE_PHONE') {
+          await handlePhoneBlur(data.phone ?? '')
         }
         return
       }
@@ -270,9 +333,30 @@ export function StudentForm({
                 <FormItem>
                   <FormLabel>電話</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value ?? ''} />
+                    <Input
+                      {...field}
+                      value={field.value ?? ''}
+                      onBlur={(e) => {
+                        field.onBlur()
+                        // Skip the lookup in edit mode if the value hasn't
+                        // changed — querying our own row would always
+                        // "find" the student.
+                        if (mode === 'edit' && e.target.value === (initialPhone ?? '')) return
+                        handlePhoneBlur(e.target.value)
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
+                  {mode === 'create' && checkingDuplicate ? (
+                    <p className="text-xs text-muted-foreground">查詢中…</p>
+                  ) : null}
+                  {mode === 'create' && duplicateWarning ? (
+                    <DuplicatePhoneAlert
+                      existing={duplicateWarning}
+                      acknowledged={ignoreDuplicate}
+                      onAcknowledge={() => setIgnoreDuplicate(true)}
+                    />
+                  ) : null}
                 </FormItem>
               )}
             />
@@ -824,5 +908,66 @@ export function StudentForm({
         </div>
       </form>
     </Form>
+  )
+}
+
+// duplicate-prevention §2A — inline amber alert under the phone field.
+// Shows the matching student's name + frontend consultant, with two CTAs:
+//   1) 查看現有名單 — open the existing student in a new tab so the
+//      consultant can verify before deciding
+//   2) 確認為不同學生,繼續建立 — toggles the ignoreDuplicate flag in the
+//      parent so the form can submit (action layer logs an
+//      activity_log entry tagged duplicate_phone_override)
+function DuplicatePhoneAlert({
+  existing,
+  acknowledged,
+  onAcknowledge,
+}: {
+  existing: DuplicatePhoneStudent
+  acknowledged: boolean
+  onAcknowledge: () => void
+}) {
+  const dt = new Date(existing.created_at).toLocaleDateString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+  })
+  return (
+    <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-amber-800">系統找到一筆相同手機號碼的學生</p>
+          <p className="mt-0.5 text-xs text-amber-700">
+            姓名:<span className="font-medium">{existing.full_name}</span>
+            {existing.english_name ? `(${existing.english_name})` : ''}
+            {' · '}
+            負責顧問:{existing.frontend_consultant_name ?? '未指派'}
+            {' · '}
+            建立時間:{dt}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/students/${existing.id}`} target="_blank" rel="noopener noreferrer">
+                查看現有名單 →
+              </Link>
+            </Button>
+            {acknowledged ? (
+              <span className="inline-flex items-center text-xs font-medium text-amber-800">
+                ✓ 已確認為不同學生,送出後會記錄供主管審核
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                onClick={onAcknowledge}
+              >
+                確認為不同學生,繼續建立
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
