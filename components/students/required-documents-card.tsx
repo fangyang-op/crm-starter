@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FileUploadButton } from '@/components/ui/file-upload-button'
 import {
   Sheet,
   SheetContent,
@@ -436,16 +437,12 @@ function DocRow({
             ) : null}
           </>
         ) : canEdit && item.is_required ? (
-          <label className="cursor-pointer rounded-md border border-input bg-background px-2.5 py-1 text-xs hover:bg-accent">
-            選檔
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg,image/webp"
-              onChange={(e) => handleUpload(e.target.files?.[0] ?? null)}
-              disabled={pending}
-              className="hidden"
-            />
-          </label>
+          <FileUploadButton
+            variant="button"
+            accept="application/pdf,image/png,image/jpeg,image/webp"
+            onChange={(f) => handleUpload(f)}
+            disabled={pending}
+          />
         ) : null}
       </div>
     </div>

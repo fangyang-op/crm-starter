@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FileUploadButton } from '@/components/ui/file-upload-button'
 import {
   Dialog,
   DialogContent,
@@ -229,12 +230,10 @@ function DeferDialog({ studentId }: { studentId: string }) {
             <Label>
               延後入學同意書 (PDF)<span className="text-destructive">*</span>
             </Label>
-            <input
-              type="file"
+            <FileUploadButton
               accept="application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(f) => setFile(f)}
               disabled={pending}
-              className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-accent"
             />
             {file ? (
               <p className="text-xs text-muted-foreground">已選:{file.name}</p>

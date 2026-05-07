@@ -1,13 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 
-import { FileText, Paperclip, Trash2, Upload, X } from 'lucide-react'
+import { FileText, Paperclip, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FileUploadButton } from '@/components/ui/file-upload-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -85,7 +86,6 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
   // GPA has no exam date / expiry semantics — the score is for the whole
   // transcript, not a single exam sitting. Keep the form lean.
   const hasDates = scoreType !== 'gpa'
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubChange = (key: string, value: string) => {
     setSubScores((prev) => ({ ...prev, [key]: value }))
@@ -288,27 +288,11 @@ export function ScoreFormSheet({ studentId, initial, open, onOpenChange }: Props
               </p>
             ) : null}
             {!file && !hasExistingCert && !removeCert ? (
-              <>
-                {/* Hidden native input — the custom button below triggers it.
-                    Native file inputs can't carry hover styling reliably. */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,application/pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  disabled={pending}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={pending}
-                  className="group flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-input bg-background px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Upload size={16} className="transition-transform group-hover:-translate-y-0.5" />
-                  <span>選擇檔案 (PNG / JPEG / WebP / PDF,最大 10MB)</span>
-                </button>
-              </>
+              <FileUploadButton
+                accept="image/png,image/jpeg,image/webp,application/pdf"
+                onChange={(f) => setFile(f)}
+                disabled={pending}
+              />
             ) : null}
             {file ? <p className="text-[11px] text-muted-foreground">將取代現有檔案</p> : null}
           </div>

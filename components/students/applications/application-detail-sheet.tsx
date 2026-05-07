@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FileUploadButton } from '@/components/ui/file-upload-button'
 import { Input } from '@/components/ui/input'
 import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
@@ -979,13 +980,7 @@ function DecisionFileBlock({ studentId, app }: { studentId: string; app: Applica
       ) : (
         <p className="text-xs text-muted-foreground">尚未上傳。</p>
       )}
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
-        disabled={pending}
-        className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-accent"
-      />
+      <FileUploadButton accept="application/pdf" onChange={(f) => onPick(f)} disabled={pending} />
     </section>
   )
 }
@@ -1132,12 +1127,10 @@ function ScholarshipBlock({ studentId, app }: { studentId: string; app: Applicat
               </p>
             ) : null}
             {!file && (!s?.award_letter_path || removeAward) ? (
-              <input
-                type="file"
+              <FileUploadButton
                 accept="application/pdf"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(f) => setFile(f)}
                 disabled={pending}
-                className="block w-full text-xs file:mr-3 file:rounded-md file:border file:border-input file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-accent"
               />
             ) : null}
           </div>
