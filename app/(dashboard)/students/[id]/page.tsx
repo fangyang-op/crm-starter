@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil } from 'lucide-react'
 import { CredentialsCard, type CredentialItem } from '@/components/students/credentials-card'
 import { DeferCard, type DeferRecord } from '@/components/students/defer-card'
 import { DeleteStudentDialog } from '@/components/students/delete-student-dialog'
+import { StudentContactsCard } from '@/components/students/student-contacts-card'
 import {
   RequiredDocumentsCard,
   type RequiredDocItem,
@@ -152,6 +153,27 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   }))
   const visaCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'visa')
   const housingCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'housing')
+
+  // duplicate-prevention §3C: per-student contacts (parents / guardians / etc).
+  // RLS on student_contacts mirrors student_status_history — manager+/admin
+  // see all, consultants see only their own students' rows. Cast through
+  // never since codegen hasn't seen the new table yet.
+  const { data: contactsRaw } = await supabase
+    .from('student_contacts' as never)
+    .select('id, relation, name, phone, email, line_id, is_primary_contact, notes, created_at')
+    .eq('student_id' as never, params.id as never)
+    .order('is_primary_contact' as never, { ascending: false })
+    .order('created_at' as never, { ascending: true })
+  const contacts = (contactsRaw ?? []) as unknown as Array<{
+    id: string
+    relation: string
+    name: string
+    phone: string | null
+    email: string | null
+    line_id: string | null
+    is_primary_contact: boolean
+    notes: string | null
+  }>
 
   // Required-documents checklist (spec § 2.11): join the org-wide templates
   // table with this student's per-row state. We render every active template
@@ -385,6 +407,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                 {fmt(student.graduation_year)}
               </CardContent>
             </Card>
+
+            <StudentContactsCard
+              studentId={student.id}
+              contacts={contacts}
+              canEdit={canChangeStatus}
+            />
 
             <Card>
               <CardHeader>

@@ -47,6 +47,10 @@ import {
   type DuplicatePhoneStudent,
   type PreliminaryScoreInput,
 } from '@/app/(dashboard)/students/actions'
+import {
+  addStudentContact,
+  type ContactRelation,
+} from '@/app/(dashboard)/students/[id]/contacts/actions'
 
 export type LeadSourceOption = {
   id: string
@@ -165,6 +169,17 @@ export function StudentForm({
   const [prelimStdType, setPrelimStdType] = useState<'none' | 'gre' | 'gmat' | 'sat'>('none')
   const [prelimStdScore, setPrelimStdScore] = useState('')
 
+  // duplicate-prevention §3B: optional 代填人 capture during 新增. Default
+  // 'self' = 學生本人,parent fields stay hidden. Switching to 'parent'
+  // expands a small block we POST after the student insert succeeds (see
+  // student_contacts INSERT in handleSubmit). Edit mode skips this entirely
+  // — contact CRUD lives on the detail page.
+  const [fillerType, setFillerType] = useState<'self' | 'parent'>('self')
+  const [contactRelation, setContactRelation] = useState<ContactRelation>('母親')
+  const [contactName, setContactName] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+
   // duplicate-prevention §2A: blur the phone field → server checks via SD
   // function find_duplicate_student_by_phone (0038). If a row comes back we
   // render an inline amber warning. The consultant can either jump to the
@@ -270,6 +285,25 @@ export function StudentForm({
         }
         return
       }
+      // §3B: when 家長代填 is selected and a name was filled, attach a
+      // contact row to the freshly-created student. Best-effort — the
+      // student already exists, so a failed contact insert just surfaces
+      // a warning toast and the consultant can re-add from the detail page.
+      if (mode === 'create' && fillerType === 'parent' && contactName.trim()) {
+        const cr = await addStudentContact(result.id, {
+          relation: contactRelation,
+          name: contactName.trim(),
+          phone: contactPhone.trim() || null,
+          email: contactEmail.trim() || null,
+          line_id: null,
+          is_primary_contact: true,
+          notes: null,
+        })
+        if (!cr.ok) {
+          toast.warning(`學生已建立,但代填人資料寫入失敗:${cr.error}`)
+        }
+      }
+
       toast.success(mode === 'create' ? '已建立學生' : '已更新')
       router.push(`/students/${result.id}`)
       router.refresh()
@@ -279,6 +313,100 @@ export function StudentForm({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 填寫人身份 — only for create mode. Edit mode reaches this form
+            from the existing student's edit page; contact CRUD lives on the
+            detail page. */}
+        {mode === 'create' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">填寫人身份</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="filler-type"
+                    value="self"
+                    checked={fillerType === 'self'}
+                    onChange={() => setFillerType('self')}
+                  />
+                  本人填寫
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="filler-type"
+                    value="parent"
+                    checked={fillerType === 'parent'}
+                    onChange={() => setFillerType('parent')}
+                  />
+                  家長 / 關係人代填
+                </label>
+              </div>
+
+              {fillerType === 'parent' ? (
+                <div className="space-y-3 rounded-lg border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-xs text-muted-foreground">
+                    代填人資料將附掛在學生檔案下,不會建立新的學生名單。
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contact-relation">
+                        與學生關係 <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={contactRelation}
+                        onValueChange={(v) => setContactRelation(v as ContactRelation)}
+                      >
+                        <SelectTrigger id="contact-relation">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(['父親', '母親', '監護人', '親戚', '其他'] as const).map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contact-name">
+                        代填人姓名 <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="contact-name"
+                        placeholder="家長姓名"
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contact-phone">代填人手機</Label>
+                      <Input
+                        id="contact-phone"
+                        placeholder="家長手機號碼"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contact-email">代填人 Email</Label>
+                      <Input
+                        id="contact-email"
+                        placeholder="家長 Email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* 基本資料 */}
         <Card>
           <CardHeader>
