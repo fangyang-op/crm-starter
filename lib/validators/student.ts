@@ -9,7 +9,24 @@ export const TARGET_DEGREE_VALUES = [
   'tour',
   'other',
 ] as const
-export const CURRENT_DEGREE_VALUES = ['high_school', 'bachelor', 'master', 'phd', 'other'] as const
+// v1.1 §2: 13 fixed grade/role options. Stored as the Chinese label itself
+// (DB CHECK constraint added in migration 0035). Keep insertion order = the
+// order shown in the form's <Select>.
+export const CURRENT_DEGREE_VALUES = [
+  '國一',
+  '國二',
+  '國三',
+  '高一',
+  '高二',
+  '高三',
+  '大一',
+  '大二',
+  '大三',
+  '大四',
+  '大五',
+  '在台碩士',
+  '在職人士',
+] as const
 
 const optionalString = (max: number) => z.string().max(max).nullable().optional()
 

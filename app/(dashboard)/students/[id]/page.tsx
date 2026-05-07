@@ -34,13 +34,9 @@ const TARGET_DEGREE_LABELS: Record<string, string> = {
   other: '其他',
 }
 
-const CURRENT_DEGREE_LABELS: Record<string, string> = {
-  high_school: '高中',
-  bachelor: '學士',
-  master: '碩士',
-  phd: '博士',
-  other: '其他',
-}
+// v1.1 §2: current_degree is now stored as the Chinese label itself
+// (國一/大一/在台碩士/在職人士/...). Legacy English codes are migrated to the
+// closest new value (or NULL) by migration 0035, so the label map is gone.
 
 function fmt(value: string | number | null | undefined): React.ReactNode {
   if (value === null || value === undefined || value === '') {
@@ -383,12 +379,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                 {fmt(student.current_school)}
                 <span className="text-muted-foreground">科系</span>
                 {fmt(student.current_major)}
-                <span className="text-muted-foreground">學位</span>
-                {fmt(
-                  student.current_degree
-                    ? (CURRENT_DEGREE_LABELS[student.current_degree] ?? student.current_degree)
-                    : null,
-                )}
+                <span className="text-muted-foreground">學歷</span>
+                {fmt(student.current_degree)}
                 <span className="text-muted-foreground">畢業年份</span>
                 {fmt(student.graduation_year)}
               </CardContent>

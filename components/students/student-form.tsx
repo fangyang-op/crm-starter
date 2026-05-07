@@ -68,13 +68,7 @@ export type StudentFormProps = {
   ) => Promise<ActionResult>
 }
 
-const CURRENT_DEGREE_LABELS: Record<(typeof CURRENT_DEGREE_VALUES)[number], string> = {
-  high_school: '高中',
-  bachelor: '學士',
-  master: '碩士',
-  phd: '博士',
-  other: '其他',
-}
+// v1.1 §2: values are already the display labels — no separate label map needed.
 
 const TARGET_DEGREE_LABELS: Record<(typeof TARGET_DEGREE_VALUES)[number], string> = {
   bachelor: '學士',
@@ -348,7 +342,7 @@ export function StudentForm({
               name="current_degree"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>學位</FormLabel>
+                  <FormLabel>學歷</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
                     value={field.value ?? '__none__'}
@@ -362,7 +356,7 @@ export function StudentForm({
                       <SelectItem value="__none__">未填</SelectItem>
                       {CURRENT_DEGREE_VALUES.map((v) => (
                         <SelectItem key={v} value={v}>
-                          {CURRENT_DEGREE_LABELS[v]}
+                          {v}
                         </SelectItem>
                       ))}
                     </SelectContent>
