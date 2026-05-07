@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 
-import { CheckCircle2, ChevronRight, FileText, XCircle } from 'lucide-react'
+import { Check, CheckCircle2, ChevronRight, FileText, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -141,6 +141,62 @@ function DocList({ studentId, items, canEdit }: Props) {
     grouped.set(it.category, arr)
   }
 
+  // v1.1 §4: track recently-uploaded items so we can render an inline
+  // "✓ 上傳成功" beside the row for ~1.5s without bouncing the user out of
+  // the panel. Also keeps a ref map so handleUpload can scroll to the next
+  // pending row after a successful upload.
+  const [recentlyUploaded, setRecentlyUploaded] = useState<Set<string>>(new Set())
+  const rowRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
+
+  // Build the same flat ordered list the rows render in, so "next pending"
+  // matches what the user sees on screen.
+  const flatOrdered: RequiredDocItem[] = []
+  for (const cat of ['school_application', 'visa_enrollment', 'other'] as const) {
+    const list = grouped.get(cat) ?? []
+    flatOrdered.push(...[...list].sort((a, b) => a.label_zh.localeCompare(b.label_zh)))
+  }
+
+  const handleUploaded = useCallback(
+    (templateId: string) => {
+      setRecentlyUploaded((prev) => {
+        const next = new Set(prev)
+        next.add(templateId)
+        return next
+      })
+      // Auto-clear the inline indicator after 1.5s.
+      window.setTimeout(() => {
+        setRecentlyUploaded((prev) => {
+          if (!prev.has(templateId)) return prev
+          const next = new Set(prev)
+          next.delete(templateId)
+          return next
+        })
+      }, 1500)
+
+      // Find the next item that's still required + pending, AFTER the just-
+      // uploaded one in the rendered order. Falls back to the first such item
+      // if the uploaded one was the last in the list.
+      const idx = flatOrdered.findIndex((i) => i.template_id === templateId)
+      const after = idx >= 0 ? flatOrdered.slice(idx + 1) : flatOrdered
+      const nextPending =
+        after.find((i) => i.is_required && i.status === 'pending') ??
+        flatOrdered.find(
+          (i) => i.is_required && i.status === 'pending' && i.template_id !== templateId,
+        )
+      if (nextPending) {
+        // Defer one frame so the ref map has the latest entries after refresh.
+        window.requestAnimationFrame(() => {
+          const el = rowRefs.current.get(nextPending.template_id)
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+      }
+    },
+    // flatOrdered is recomputed each render but its identity changes only when
+    // items change — exhaustive-deps disabled to avoid useMemo noise.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items],
+  )
+
   return (
     <div className="space-y-4">
       {(['school_application', 'visa_enrollment', 'other'] as const).map((cat) => {
@@ -154,7 +210,18 @@ function DocList({ studentId, items, canEdit }: Props) {
             {list
               .sort((a, b) => a.label_zh.localeCompare(b.label_zh))
               .map((it) => (
-                <DocRow key={it.template_id} studentId={studentId} item={it} canEdit={canEdit} />
+                <DocRow
+                  key={it.template_id}
+                  studentId={studentId}
+                  item={it}
+                  canEdit={canEdit}
+                  justUploaded={recentlyUploaded.has(it.template_id)}
+                  onUploaded={handleUploaded}
+                  rowRef={(el) => {
+                    if (el) rowRefs.current.set(it.template_id, el)
+                    else rowRefs.current.delete(it.template_id)
+                  }}
+                />
               ))}
           </div>
         )
@@ -167,15 +234,30 @@ function DocRow({
   studentId,
   item,
   canEdit,
+  justUploaded,
+  onUploaded,
+  rowRef,
 }: {
   studentId: string
   item: RequiredDocItem
   canEdit: boolean
+  justUploaded: boolean
+  onUploaded: (templateId: string) => void
+  rowRef: (el: HTMLDivElement | null) => void
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [downloading, startDownload] = useTransition()
   const cfg = STATUS_CONFIG[item.status]
+  const localRef = useRef<HTMLDivElement | null>(null)
+
+  // Forward to the parent's ref-map so it can scroll to next-pending after
+  // an upload. Fire on mount + when the row's id changes.
+  useEffect(() => {
+    rowRef(localRef.current)
+    return () => rowRef(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.template_id])
 
   const handleToggle = (next: boolean) => {
     startTransition(async () => {
@@ -200,7 +282,9 @@ function DocRow({
         toast.error(r.error)
         return
       }
-      toast.success(`已上傳:${item.label_zh}`)
+      // v1.1 §4: parent handles inline "✓ 上傳成功" + scroll-to-next.
+      // No global toast — keeps the user inside the panel without a banner.
+      onUploaded(item.template_id)
       router.refresh()
     })
   }
@@ -242,7 +326,10 @@ function DocRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+    <div
+      ref={localRef}
+      className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"
+    >
       <div className="flex min-w-0 flex-1 items-start gap-2">
         <Checkbox
           checked={item.is_required}
@@ -260,6 +347,11 @@ function DocRow({
             <Badge variant="outline" className={cfg.className}>
               {cfg.label}
             </Badge>
+            {justUploaded ? (
+              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600">
+                <Check size={12} /> 上傳成功
+              </span>
+            ) : null}
           </div>
           {item.notes ? (
             <p className="mt-0.5 text-[11px] text-muted-foreground">{item.notes}</p>
