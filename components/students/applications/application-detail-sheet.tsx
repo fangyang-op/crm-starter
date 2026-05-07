@@ -96,8 +96,18 @@ export function ApplicationDetailSheet({
 
         <div className="space-y-6 py-4">
           <StatusBlock studentId={studentId} app={application} canEdit={canEdit} />
-          {(application.status === 'admitted' || application.status === 'rejected') && canEdit ? (
-            <DecisionFileBlock studentId={studentId} app={application} />
+          {/* v1.2 §5: keep the decision-letter section visible whenever the
+              file exists, even after the user moves to 放棄錄取 (declined_by_us)
+              or 確定入學 (enrolled). Previously it only rendered for status
+              admitted / rejected, so consultants lost view+download access to
+              already-uploaded PDFs once the application moved to a terminal
+              state. The block itself decides whether to show the upload UI
+              based on `kind` + status. */}
+          {canEdit && (application.offer_letter_path || application.status === 'admitted') ? (
+            <DecisionFileBlock studentId={studentId} app={application} kind="offer" />
+          ) : null}
+          {canEdit && (application.rejection_letter_path || application.status === 'rejected') ? (
+            <DecisionFileBlock studentId={studentId} app={application} kind="rejection" />
           ) : null}
           <MetaBlock studentId={studentId} app={application} canEdit={canEdit} />
           {canEdit ? <ScholarshipBlock studentId={studentId} app={application} /> : null}
@@ -898,16 +908,37 @@ function CommissionBlock({ studentId, app }: { studentId: string; app: Applicati
 }
 
 // ============================================================================
-// 5.1 — Offer / Rejection PDF upload (only when status admitted/rejected)
+// 5.1 — Offer / Rejection PDF upload
 // ============================================================================
-function DecisionFileBlock({ studentId, app }: { studentId: string; app: ApplicationRow }) {
+// v1.2 §5: `kind` is now a prop (was derived from status). The parent decides
+// when to render — section appears whenever the file exists OR the status
+// matches. Upload UI is gated on whether replace is sensible for the current
+// status, so 放棄錄取 / 確定入學 still see the file but can also re-upload.
+function DecisionFileBlock({
+  studentId,
+  app,
+  kind,
+}: {
+  studentId: string
+  app: ApplicationRow
+  kind: 'offer' | 'rejection'
+}) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [downloading, startDownload] = useTransition()
 
-  const kind: 'offer' | 'rejection' = app.status === 'admitted' ? 'offer' : 'rejection'
   const path = kind === 'offer' ? app.offer_letter_path : app.rejection_letter_path
   const labelKind = kind === 'offer' ? '錄取通知書' : '拒絕信'
+
+  // Upload (initial or replace) is allowed when:
+  //   offer:     admitted | enrolled | declined_by_us
+  //              (admitted = first upload; enrolled / declined_by_us =
+  //              "重新上傳" replace, per spec)
+  //   rejection: rejected (the only state where "拒絕信" is meaningful)
+  const allowUpload =
+    kind === 'offer'
+      ? app.status === 'admitted' || app.status === 'enrolled' || app.status === 'declined_by_us'
+      : app.status === 'rejected'
 
   const onPick = (file: File | null) => {
     if (!file) return
@@ -973,14 +1004,32 @@ function DecisionFileBlock({ studentId, app }: { studentId: string; app: Applica
           >
             {downloading ? '產生連結…' : '下載'}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={pending}>
-            移除
-          </Button>
+          {allowUpload ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              disabled={pending}
+            >
+              移除
+            </Button>
+          ) : null}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">尚未上傳。</p>
       )}
-      <FileUploadButton accept="application/pdf" onChange={(f) => onPick(f)} disabled={pending} />
+      {/* Upload area: only render when replacing/initial-uploading is sensible
+          for the current status. When there's an existing file we relabel
+          to「重新上傳」per spec so it's clear this replaces the current PDF. */}
+      {allowUpload ? (
+        <FileUploadButton
+          accept="application/pdf"
+          onChange={(f) => onPick(f)}
+          disabled={pending}
+          label={path ? `重新上傳 ${labelKind} (PDF,最大 10MB)` : undefined}
+        />
+      ) : null}
     </section>
   )
 }
