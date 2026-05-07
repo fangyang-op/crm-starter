@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { ArrowRight, Lightbulb } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Lightbulb } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -33,6 +33,16 @@ export default async function HomePage() {
     unassignedBackendCount = count ?? 0
   }
 
+  // duplicate-prevention §4: count of `duplicate_phone_override` activity_log
+  // rows the viewer can see. activity_log RLS already restricts non-managers
+  // to their own students' rows, so non-managers naturally see 0 in normal
+  // flow — same self-hiding pattern as the widget above.
+  const { count: dupOverrideCountRaw } = await supabase
+    .from('activity_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('action', 'duplicate_phone_override')
+  const dupOverrideCount = dupOverrideCountRaw ?? 0
+
   return (
     <div className="mx-auto max-w-7xl space-y-4 px-6 py-6">
       <h1 className="text-2xl font-semibold">儀表板</h1>
@@ -50,6 +60,25 @@ export default async function HomePage() {
             <span className="text-amber-900">
               目前尚有 <strong className="tabular-nums">{unassignedBackendCount}</strong>{' '}
               位學生尚未分配後端顧問
+            </span>
+          </div>
+          <span className="flex items-center gap-1 text-amber-800">
+            查看清單
+            <ArrowRight size={14} />
+          </span>
+        </Link>
+      ) : null}
+
+      {dupOverrideCount > 0 ? (
+        <Link
+          href="/duplicate-overrides"
+          className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm shadow-sm transition-colors hover:bg-amber-100"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="shrink-0 text-amber-600" />
+            <span className="text-amber-900">
+              有 <strong className="tabular-nums">{dupOverrideCount}</strong>{' '}
+              筆名單覆蓋了重複手機號碼,請確認
             </span>
           </div>
           <span className="flex items-center gap-1 text-amber-800">
