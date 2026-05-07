@@ -3,9 +3,18 @@
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -25,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import { COUNTRY_LABELS, DEGREE_LEVEL_LABELS } from '@/lib/constants/school'
 import { TIER_LABELS, TIER_VALUES, type Tier } from '@/lib/constants/tier'
 
@@ -45,25 +56,14 @@ export function AddSchoolToListDialog({ studentId, listId, schools, programs, tr
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
 
-  const [search, setSearch] = useState('')
+  const [schoolPickerOpen, setSchoolPickerOpen] = useState(false)
   const [schoolId, setSchoolId] = useState<string>('')
   const [programId, setProgramId] = useState<string>('__none__')
   const [programOverride, setProgramOverride] = useState('')
   const [tier, setTier] = useState<Tier>('match')
   const [notes, setNotes] = useState('')
 
-  const filteredSchools = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return schools.slice(0, 50)
-    return schools
-      .filter(
-        (s) =>
-          s.name_en.toLowerCase().includes(q) ||
-          s.name_zh?.toLowerCase().includes(q) ||
-          s.short_name?.toLowerCase().includes(q),
-      )
-      .slice(0, 50)
-  }, [schools, search])
+  const selectedSchool = useMemo(() => schools.find((s) => s.id === schoolId), [schools, schoolId])
 
   const programOptionsForSchool = useMemo(
     () => programs.filter((p) => p.school_id === schoolId),
@@ -71,12 +71,12 @@ export function AddSchoolToListDialog({ studentId, listId, schools, programs, tr
   )
 
   const reset = () => {
-    setSearch('')
     setSchoolId('')
     setProgramId('__none__')
     setProgramOverride('')
     setTier('match')
     setNotes('')
+    setSchoolPickerOpen(false)
   }
 
   const submit = () => {
@@ -119,44 +119,96 @@ export function AddSchoolToListDialog({ studentId, listId, schools, programs, tr
           <DialogDescription>從學校資料庫選一所,設定 tier 與科系。</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="school-search">搜尋學校</Label>
-            <Input
-              id="school-search"
-              placeholder="英文 / 中文 / 簡稱"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          {/* v1.2 §4: combobox replaces the old "搜尋 input + 學校 Select"
+              pair. Why: Radix Select swallowed keystrokes once open (its
+              built-in typeahead), so the external search input was unreachable.
+              CMDK's Command lets the user type directly into the dropdown
+              and filters in-place across name_zh / name_en / short_name. */}
           <div className="space-y-1.5">
             <Label>學校</Label>
-            <Select
-              value={schoolId}
-              onValueChange={(v) => {
-                setSchoolId(v)
-                setProgramId('__none__')
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="選擇" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredSchools.length === 0 ? (
-                  <SelectItem value="__empty__" disabled>
-                    沒有符合的學校
-                  </SelectItem>
-                ) : (
-                  filteredSchools.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.short_name ? `[${s.short_name}] ` : ''}
-                      {s.name_en}
-                      {' · '}
-                      {COUNTRY_LABELS[s.country as keyof typeof COUNTRY_LABELS] ?? s.country}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={schoolPickerOpen} onOpenChange={setSchoolPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={schoolPickerOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className={cn('truncate', !selectedSchool && 'text-muted-foreground')}>
+                    {selectedSchool
+                      ? `${selectedSchool.short_name ? `[${selectedSchool.short_name}] ` : ''}${selectedSchool.name_en}`
+                      : '選擇學校 — 中文 / 英文 / 簡稱'}
+                  </span>
+                  <ChevronsUpDown size={14} className="ml-2 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  // CMDK does its own normalize+match on the value string we
+                  // return from `value`. We concatenate every searchable field
+                  // there so a query like "哈佛", "Harvard", or "HU" all hit.
+                  filter={(value, search) => {
+                    const v = value.toLowerCase()
+                    const q = search.trim().toLowerCase()
+                    return v.includes(q) ? 1 : 0
+                  }}
+                >
+                  <CommandInput placeholder="輸入中文 / 英文 / 簡稱搜尋" />
+                  <CommandList>
+                    <CommandEmpty>沒有符合的學校</CommandEmpty>
+                    <CommandGroup>
+                      {schools.map((s) => {
+                        const country =
+                          COUNTRY_LABELS[s.country as keyof typeof COUNTRY_LABELS] ?? s.country
+                        // Pack every searchable field into the value so cmdk
+                        // can match on any of them. The visible text in the
+                        // row is rendered via children below, so this string
+                        // is invisible — order doesn't matter.
+                        const haystack = [s.name_zh ?? '', s.name_en, s.short_name ?? '', country]
+                          .filter(Boolean)
+                          .join(' ')
+                        return (
+                          <CommandItem
+                            key={s.id}
+                            value={haystack}
+                            onSelect={() => {
+                              setSchoolId(s.id)
+                              setProgramId('__none__')
+                              setSchoolPickerOpen(false)
+                            }}
+                          >
+                            <Check
+                              size={14}
+                              className={cn(
+                                'mr-2 shrink-0',
+                                schoolId === s.id ? 'opacity-100' : 'opacity-0',
+                              )}
+                            />
+                            <span className="flex-1 truncate">
+                              {s.short_name ? (
+                                <span className="mr-1.5 text-xs text-muted-foreground">
+                                  {s.short_name}
+                                </span>
+                              ) : null}
+                              {s.name_en}
+                              {s.name_zh ? (
+                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                  {s.name_zh}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                              {country}
+                            </span>
+                          </CommandItem>
+                        )
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           {schoolId ? (
             <div className="space-y-1.5">
