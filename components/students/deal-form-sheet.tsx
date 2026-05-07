@@ -49,7 +49,8 @@ type PlanOption = {
 }
 
 type ConsultantOption = { id: string; name: string }
-type ReferrerOption = { id: string; name: string }
+type ReferrerOption = { id: string; name: string; default_split_percent: number | null }
+type ReferrerPrefill = { referrerId: string; splitPercent: number }
 
 type ExistingSplit = {
   role_in_deal: 'primary_consultant' | 'referrer' | 'manager_bonus'
@@ -84,6 +85,9 @@ type Props = {
   referrers: ReferrerOption[]
   extraSchoolPrice: number
   extraWordPricePer1000: number
+  /** v1.1 §1: optional pre-fill from the student's lead source. Only used on
+   *  create mode — edit mode reads splits from the existing deal. */
+  referrerPrefill?: ReferrerPrefill | null
   trigger: React.ReactNode
 }
 
@@ -102,8 +106,34 @@ type BonusRow = { id: string; userId: string; percentage: number; notes: string 
 function deriveInitialState(
   existing: ExistingDeal | undefined,
   defaultConsultantId: string | null,
+  referrerPrefill: ReferrerPrefill | null | undefined,
 ) {
   if (!existing) {
+    // v1.1 §1: when the student has a lead-source referrer, open the form
+    // with 有轉介人 already toggled on, the referrer selected, and the split
+    // pre-applied. The user can override any of it before submitting.
+    if (referrerPrefill) {
+      const pct = Math.max(0, Math.min(100, referrerPrefill.splitPercent))
+      return {
+        planId: '',
+        extraSchool: 0,
+        extraWord: 0,
+        discount: 0,
+        discountReason: '',
+        signedAt: todayInTaipei(),
+        contractNo: '',
+        paymentStatus: 'pending' as const,
+        notes: '',
+        hasReferrer: true,
+        primaryUserId: defaultConsultantId ?? '',
+        primaryPct: 100 - pct,
+        referrerType: 'referrer' as const,
+        referrerUserId: '',
+        referrerReferrerId: referrerPrefill.referrerId,
+        referrerPct: pct,
+        bonusRows: [] as BonusRow[],
+      }
+    }
     return {
       planId: '',
       extraSchool: 0,
@@ -169,15 +199,20 @@ export function DealFormSheet({
   referrers,
   extraSchoolPrice,
   extraWordPricePer1000,
+  referrerPrefill,
   trigger,
 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
 
+  // Edit mode never prefills (we have actual splits) — gate this here so the
+  // hint logic below doesn't kick in when re-opening a saved deal.
+  const effectivePrefill = mode === 'create' ? (referrerPrefill ?? null) : null
+
   const initial = useMemo(
-    () => deriveInitialState(existing, defaultConsultantId),
-    [existing, defaultConsultantId],
+    () => deriveInitialState(existing, defaultConsultantId, effectivePrefill),
+    [existing, defaultConsultantId, effectivePrefill],
   )
 
   const [planId, setPlanId] = useState(initial.planId)
@@ -201,7 +236,7 @@ export function DealFormSheet({
   const [bonusRows, setBonusRows] = useState<BonusRow[]>(initial.bonusRows)
 
   const reset = () => {
-    const fresh = deriveInitialState(existing, defaultConsultantId)
+    const fresh = deriveInitialState(existing, defaultConsultantId, effectivePrefill)
     setPlanId(fresh.planId)
     setExtraSchool(fresh.extraSchool)
     setExtraWord(fresh.extraWord)
@@ -584,6 +619,13 @@ export function DealFormSheet({
 
             {hasReferrer ? (
               <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                {effectivePrefill &&
+                referrerType === 'referrer' &&
+                referrerReferrerId === effectivePrefill.referrerId ? (
+                  <p className="text-xs text-muted-foreground">
+                    ✦ 已根據名單來源自動帶入,如需更改請手動調整
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"

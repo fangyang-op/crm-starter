@@ -37,6 +37,7 @@ export async function StudentDeals({
     { data: addons },
     { data: profiles },
     { data: referrers },
+    { data: studentRow },
   ] = await Promise.all([
     supabase
       .from('deals')
@@ -60,17 +61,59 @@ export async function StudentDeals({
       .select('id, full_name, display_name')
       .eq('is_active', true)
       .order('full_name'),
-    supabase.from('referrers').select('id, name').eq('is_active', true).order('name'),
+    // referrers: also pull default_split_percent so create-mode can pre-fill
+    // the split percentage when the student's lead source is a referrer.
+    // Cast: codegen hasn't been re-run since migration 0022 added the column.
+    supabase
+      .from('referrers')
+      .select('id, name, default_split_percent' as never)
+      .eq('is_active', true)
+      .order('name'),
+    // Pre-fill: if the student's lead_source is a referrer, surface that id
+    // in the create form. Don't filter on lead_source_type — the column is
+    // the source of truth either way and an inactive referrer is filtered
+    // out by the form's referrer select anyway.
+    supabase.from('students').select('lead_source_referrer_id').eq('id', studentId).maybeSingle(),
   ])
 
   const consultants = (profiles ?? []).map((p) => ({
     id: p.id,
     name: p.display_name || p.full_name,
   }))
-  const referrerOptions = (referrers ?? []).map((r) => ({ id: r.id, name: r.name }))
+  const referrerOptions = (
+    (referrers ?? []) as unknown as Array<{
+      id: string
+      name: string
+      default_split_percent: number | null
+    }>
+  ).map((r) => ({
+    id: r.id,
+    name: r.name,
+    default_split_percent: r.default_split_percent ?? null,
+  }))
+
+  // Pre-fill referrer for the create form (v1.1 §1). Look up the student's
+  // lead-source referrer + that referrer's default split percent. Falls back
+  // to undefined (= no prefill) when the student has no referrer or the
+  // referrer is inactive (filtered out of the select options).
+  const prefillReferrerId =
+    (studentRow as { lead_source_referrer_id: string | null } | null)?.lead_source_referrer_id ??
+    null
+  const prefillReferrer =
+    prefillReferrerId && referrerOptions.find((r) => r.id === prefillReferrerId)
+      ? referrerOptions.find((r) => r.id === prefillReferrerId)!
+      : null
+  const referrerPrefill = prefillReferrer
+    ? {
+        referrerId: prefillReferrer.id,
+        // Spec §1: pull from referrers.default_split_percent. Fall back to 35
+        // (the existing toggle default) when the back office hasn't set one.
+        splitPercent: prefillReferrer.default_split_percent ?? 35,
+      }
+    : null
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name || p.full_name]))
-  const referrerMap = new Map((referrers ?? []).map((r) => [r.id, r.name]))
+  const referrerMap = new Map(referrerOptions.map((r) => [r.id, r.name]))
 
   const planOptions = (plans ?? []).map((p) => ({
     id: p.id,
@@ -125,6 +168,7 @@ export async function StudentDeals({
       referrers={referrerOptions}
       extraSchoolPrice={extraSchoolPrice}
       extraWordPricePer1000={extraWordPricePer1000}
+      referrerPrefill={referrerPrefill}
       trigger={
         <Button>
           <Plus size={16} className="mr-1.5" />
