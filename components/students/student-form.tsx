@@ -41,8 +41,10 @@ import {
 } from '@/lib/validators/student'
 
 import {
+  checkContactPhoneDuplicate,
   checkPhoneDuplicate,
   type ActionResult,
+  type ContactPhoneMatch,
   type DuplicateOverride,
   type DuplicatePhoneStudent,
   type PreliminaryScoreInput,
@@ -180,6 +182,34 @@ export function StudentForm({
   const [contactPhone, setContactPhone] = useState('')
   const [contactEmail, setContactEmail] = useState('')
 
+  // phone-normalize §3: contact-phone has its own duplicate-detection path
+  // — the SD function find_phone_anywhere queries students AND
+  // student_contacts so the warning explicitly tells the consultant whether
+  // the number is on a student or another contact.
+  const [contactPhoneMatches, setContactPhoneMatches] = useState<ContactPhoneMatch[]>([])
+  const [ignoreContactPhoneDup, setIgnoreContactPhoneDup] = useState(false)
+  const [checkingContactPhone, setCheckingContactPhone] = useState(false)
+
+  const handleContactPhoneBlur = async (value: string) => {
+    const trimmed = (value ?? '').trim()
+    if (trimmed.length < 8) {
+      setContactPhoneMatches([])
+      return
+    }
+    setCheckingContactPhone(true)
+    try {
+      const r = await checkContactPhoneDuplicate(trimmed)
+      if (r.ok && r.isDuplicate) {
+        setContactPhoneMatches(r.matches)
+        setIgnoreContactPhoneDup(false)
+      } else {
+        setContactPhoneMatches([])
+      }
+    } finally {
+      setCheckingContactPhone(false)
+    }
+  }
+
   // duplicate-prevention §2A: blur the phone field → server checks via SD
   // function find_duplicate_student_by_phone (0038). If a row comes back we
   // render an inline amber warning. The consultant can either jump to the
@@ -253,6 +283,18 @@ export function StudentForm({
     // confirmed. Consultant must explicitly press「確認為不同學生」first.
     if (mode === 'create' && duplicateWarning && !ignoreDuplicate) {
       toast.error('請先確認重複名單的處理方式')
+      return
+    }
+
+    // phone-normalize §3 — block submit if contact-phone duplicate is
+    // pending acknowledgement. Same UX pattern as §2A.
+    if (
+      mode === 'create' &&
+      fillerType === 'parent' &&
+      contactPhoneMatches.length > 0 &&
+      !ignoreContactPhoneDup
+    ) {
+      toast.error('請先確認代填人手機的重複處理方式')
       return
     }
 
@@ -382,14 +424,25 @@ export function StudentForm({
                         onChange={(e) => setContactName(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 md:col-span-2">
                       <Label htmlFor="contact-phone">代填人手機</Label>
                       <Input
                         id="contact-phone"
                         placeholder="家長手機號碼"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
+                        onBlur={(e) => handleContactPhoneBlur(e.target.value)}
                       />
+                      {checkingContactPhone ? (
+                        <p className="text-xs text-muted-foreground">查詢中…</p>
+                      ) : null}
+                      {contactPhoneMatches.length > 0 ? (
+                        <ContactPhoneAlert
+                          matches={contactPhoneMatches}
+                          acknowledged={ignoreContactPhoneDup}
+                          onAcknowledge={() => setIgnoreContactPhoneDup(true)}
+                        />
+                      ) : null}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="contact-email">代填人 Email</Label>
@@ -1091,6 +1144,84 @@ function DuplicatePhoneAlert({
                 onClick={onAcknowledge}
               >
                 確認為不同學生,繼續建立
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// phone-normalize §3 — contact-phone duplicate alert. Distinct from
+// DuplicatePhoneAlert because the meaning is different: the matched number
+// might be a student's main phone OR another student's contact, and the
+// consultant should see both kinds.
+function ContactPhoneAlert({
+  matches,
+  acknowledged,
+  onAcknowledge,
+}: {
+  matches: ContactPhoneMatch[]
+  acknowledged: boolean
+  onAcknowledge: () => void
+}) {
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-amber-800">
+            此手機號碼已登記在現有學生或其關係人資料中,請確認
+          </p>
+          <ul className="mt-1.5 space-y-0.5 text-xs text-amber-800">
+            {matches.map((m) => (
+              <li key={`${m.match_type}-${m.match_id}`} className="flex flex-wrap gap-1">
+                {m.match_type === 'student' ? (
+                  <>
+                    <span className="font-medium">學生本人:</span>
+                    <Link
+                      href={`/students/${m.student_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      {m.student_name} →
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">
+                      {m.contact_name}({m.contact_relation}):
+                    </span>
+                    <span>於</span>
+                    <Link
+                      href={`/students/${m.student_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      {m.student_name} →
+                    </Link>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2">
+            {acknowledged ? (
+              <span className="text-xs font-medium text-amber-800">
+                ✓ 已確認為不同對象,送出後仍會建立此學生與代填人
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                onClick={onAcknowledge}
+              >
+                確認為不同對象,繼續建立
               </Button>
             )}
           </div>

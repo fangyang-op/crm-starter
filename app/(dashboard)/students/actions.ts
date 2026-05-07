@@ -76,6 +76,42 @@ export type DuplicateOverride = {
   phone: string
 }
 
+export type ContactPhoneMatch = {
+  match_type: 'student' | 'contact'
+  match_id: string
+  student_id: string
+  student_name: string
+  contact_name: string | null
+  contact_relation: string | null
+}
+
+export type ContactPhoneDuplicateResult =
+  | { ok: true; isDuplicate: false }
+  | { ok: true; isDuplicate: true; matches: ContactPhoneMatch[] }
+  | { ok: false; error: string }
+
+/** phone-normalize §3 — scan both `students.phone` and `student_contacts.phone`
+ *  for the supplied number. Used by the 代填人 (contact) phone input on the
+ *  new-student form so the warning explicitly mentions either case. */
+export async function checkContactPhoneDuplicate(
+  phone: string,
+): Promise<ContactPhoneDuplicateResult> {
+  const normalized = normalizePhone(phone)
+  if (normalized.length < 8) return { ok: true, isDuplicate: false }
+
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc(
+    'find_phone_anywhere' as never,
+    { p_phone: normalized } as never,
+  )
+  if (error) {
+    return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
+  }
+  const matches = (data ?? []) as unknown as ContactPhoneMatch[]
+  if (matches.length === 0) return { ok: true, isDuplicate: false }
+  return { ok: true, isDuplicate: true, matches }
+}
+
 function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   for (const issue of err.issues) {
