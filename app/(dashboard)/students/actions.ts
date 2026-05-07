@@ -2,13 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { createClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/utils/phone'
 import {
   createStudentSchema,
   toDbPayload,
   updateStudentSchema,
   type StudentInput,
 } from '@/lib/validators/student'
-import { createClient } from '@/lib/supabase/server'
 
 export type ActionResult =
   | { ok: true; id: string }
@@ -48,12 +49,15 @@ export type DuplicatePhoneResult =
  *  by_phone (migration 0038). Returns at most one match. Server-only so we
  *  can normalise the phone server-side and bypass RLS via SECURITY DEFINER. */
 export async function checkPhoneDuplicate(phone: string): Promise<DuplicatePhoneResult> {
-  if (!phone || phone.trim().length < 8) return { ok: true, isDuplicate: false }
+  // phone-normalize §1.4: normalize before lookup so 0912-345-678 /
+  // +886912345678 / 0912345678 all hit the same canonical row.
+  const normalized = normalizePhone(phone)
+  if (normalized.length < 8) return { ok: true, isDuplicate: false }
 
   const supabase = createClient()
   const { data, error } = await supabase.rpc(
     'find_duplicate_student_by_phone' as never,
-    { p_phone: phone } as never,
+    { p_phone: normalized } as never,
   )
   if (error) {
     return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
@@ -125,8 +129,14 @@ export async function createStudent(
     }
   }
 
+  // phone-normalize §1: canonicalise phone before INSERT so DB rows always
+  // store '0912345678' regardless of input format ('0912-345-678' / '+886
+  // 912 345 678' / '(02) 5580-2586' all collapse). Empty → null.
+  const dbPayload = toDbPayload(parsed.data)
+  const normalizedPhone = normalizePhone(dbPayload.phone)
   const payload = {
-    ...toDbPayload(parsed.data),
+    ...dbPayload,
+    phone: normalizedPhone === '' ? null : normalizedPhone,
     // RLS WITH CHECK: created_by must equal auth.uid()
     created_by: user.id,
     // Required since 0026 — codegen may not have caught up so cast through never.
@@ -171,7 +181,9 @@ export async function createStudent(
       entity_id: data.id,
       payload: {
         duplicate_of_student_id: duplicateOverride.duplicateOfStudentId,
-        phone: duplicateOverride.phone,
+        // Log the canonical phone so the 主管 widget shows the same value
+        // regardless of how the consultant typed it.
+        phone: normalizePhone(duplicateOverride.phone) || duplicateOverride.phone,
         reason: 'confirmed_different_by_consultant',
       },
     })
@@ -210,6 +222,14 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
   const supabase = createClient()
   const { id: parsedId, ...patch } = parsed.data
 
+  // phone-normalize §1: same canonicalisation as createStudent.
+  const dbPatch = toDbPayload(patch as StudentInput)
+  const normalizedPhone = normalizePhone(dbPatch.phone)
+  const finalPatch = {
+    ...dbPatch,
+    phone: normalizedPhone === '' ? null : normalizedPhone,
+  }
+
   // SECURITY DEFINER (migration 0007) — direct UPDATE under RLS WITH CHECK
   // misbehaves for admin (same quirk as soft delete). The function also writes
   // consultant_handovers + activity_log entries when frontend / backend
@@ -218,11 +238,20 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
     'update_student' as never,
     {
       p_id: parsedId,
-      p_data: toDbPayload(patch as StudentInput),
+      p_data: finalPatch,
     } as never,
   )
 
   if (error) {
+    // §5 (duplicate-prevention): also handle 23505 here in case an editor
+    // tries to overwrite their phone with one that already belongs to
+    // another student. Same friendly message as createStudent.
+    if ((error as { code?: string }).code === '23505') {
+      return {
+        ok: false,
+        error: '此手機號碼已有其他學生使用,請確認後再儲存。',
+      }
+    }
     return { ok: false, error: `更新失敗:${(error as { message: string }).message}` }
   }
 

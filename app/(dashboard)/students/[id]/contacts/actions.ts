@@ -1,51 +1,20 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
+import type { ZodError } from 'zod'
 
 import { createClient } from '@/lib/supabase/server'
+import { normalizePhone } from '@/lib/utils/phone'
 
-const RELATION_VALUES = ['父親', '母親', '監護人', '親戚', '其他'] as const
-export type ContactRelation = (typeof RELATION_VALUES)[number]
+import { studentContactSchema, type ContactActionResult, type StudentContactInput } from './schema'
 
-export const studentContactSchema = z.object({
-  relation: z.enum(RELATION_VALUES),
-  name: z.string().min(1, '請填寫姓名').max(100),
-  phone: z
-    .string()
-    .max(50)
-    .optional()
-    .nullable()
-    .transform((v) => v?.trim() || null),
-  email: z
-    .string()
-    .max(255)
-    .optional()
-    .nullable()
-    .transform((v) => v?.trim() || null)
-    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'email 格式錯誤'),
-  line_id: z
-    .string()
-    .max(50)
-    .optional()
-    .nullable()
-    .transform((v) => v?.trim() || null),
-  is_primary_contact: z.boolean().optional().default(false),
-  notes: z
-    .string()
-    .max(500)
-    .optional()
-    .nullable()
-    .transform((v) => v?.trim() || null),
-})
+// types-only re-export so callers can keep importing from './actions' as
+// before. 'use server' files can't export non-async runtime values, so
+// schema/constants live in ./schema and only async functions are exported
+// here. Type re-exports are erased at compile time so they're safe.
+export type { ContactRelation, ContactActionResult, StudentContactInput } from './schema'
 
-export type StudentContactInput = z.infer<typeof studentContactSchema>
-
-export type ContactActionResult =
-  | { ok: true; id: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
-
-function flattenZodErrors(err: z.ZodError): Record<string, string[]> {
+function flattenZodErrors(err: ZodError): Record<string, string[]> {
   const result: Record<string, string[]> = {}
   for (const issue of err.issues) {
     const path = issue.path.join('.')
@@ -72,13 +41,18 @@ export async function addStudentContact(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: '未登入' }
 
+  // phone-normalize §1 — canonicalise contact phone before INSERT.
+  const normalizedPhone = parsed.data.phone ? normalizePhone(parsed.data.phone) : null
+  const insertRow = {
+    student_id: studentId,
+    ...parsed.data,
+    phone: normalizedPhone === '' ? null : normalizedPhone,
+    created_by: user.id,
+  }
+
   const { data, error } = await supabase
     .from('student_contacts' as never)
-    .insert({
-      student_id: studentId,
-      ...parsed.data,
-      created_by: user.id,
-    } as never)
+    .insert(insertRow as never)
     .select('id' as never)
     .single()
 
@@ -121,9 +95,15 @@ export async function updateStudentContact(
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: '未登入' }
 
+  const normalizedPhone = parsed.data.phone ? normalizePhone(parsed.data.phone) : null
+  const updateRow = {
+    ...parsed.data,
+    phone: normalizedPhone === '' ? null : normalizedPhone,
+  }
+
   const { error } = await supabase
     .from('student_contacts' as never)
-    .update(parsed.data as never)
+    .update(updateRow as never)
     .eq('id' as never, contactId as never)
 
   if (error) {
