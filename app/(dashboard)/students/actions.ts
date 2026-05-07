@@ -12,7 +12,15 @@ import { createClient } from '@/lib/supabase/server'
 
 export type ActionResult =
   | { ok: true; id: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
+  | {
+      ok: false
+      error: string
+      fieldErrors?: Record<string, string[]>
+      /** Set when the failure is the phone UNIQUE constraint (PG 23505). The
+       *  client uses this to drive the inline "重複名單" UI instead of
+       *  showing a generic toast. */
+      code?: 'DUPLICATE_PHONE'
+    }
 
 /** Optional initial scores captured during 前端建檔. Each row becomes
  *  an academic_scores entry with status='preliminary'. */
@@ -84,6 +92,17 @@ export async function createStudent(
   const { data, error } = await supabase.from('students').insert(payload).select('id').single()
 
   if (error) {
+    // duplicate-prevention §5: PG 23505 = unique_violation. Migration 0037
+    // adds students_phone_unique. Surface as a typed error so the form can
+    // render the inline duplicate UI instead of a generic toast.
+    if ((error as { code?: string }).code === '23505') {
+      return {
+        ok: false,
+        error: '此手機號碼已有學生名單存在,請先搜尋現有名單。',
+        code: 'DUPLICATE_PHONE',
+        fieldErrors: { phone: ['此手機號碼已有學生名單存在'] },
+      }
+    }
     return { ok: false, error: `建立失敗:${error.message}` }
   }
 
