@@ -113,13 +113,11 @@ export function Sidebar({ role }: { role: UserRole }) {
           collapsed ? 'justify-center px-2' : 'justify-between px-4',
         )}
       >
-        <Link
-          href="/"
-          className={cn('truncate text-base font-semibold', collapsed ? 'text-center' : 'flex-1')}
-          title="留學代辦 CRM"
-        >
-          {collapsed ? 'CRM' : '留學代辦 CRM'}
-        </Link>
+        {collapsed ? null : (
+          <Link href="/" className="flex-1 truncate text-base font-semibold" title="留學代辦 CRM">
+            留學代辦 CRM
+          </Link>
+        )}
         <button
           type="button"
           onClick={toggle}
