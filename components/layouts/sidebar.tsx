@@ -35,24 +35,24 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '儀表板', icon: LayoutDashboard },
-  { href: '/students', label: '學生', icon: Users },
-  { href: '/schools', label: '學校', icon: GraduationCap },
-  { href: '/applications', label: '申請', icon: FileCheck },
+  { href: '/students', label: '學生專案管理', icon: Users },
+  { href: '/schools', label: '常用院校檢索', icon: GraduationCap },
+  { href: '/applications', label: '申請進度看板', icon: FileCheck },
   {
     href: '/workload',
-    label: 'Workload',
+    label: '後端量能管理',
     icon: BarChart3,
     roles: ['manager_frontend', 'manager_backend', 'admin'],
   },
   {
     href: '/reports',
-    label: '報表',
+    label: '營收績效管理',
     icon: LineChart,
     roles: ['manager_frontend', 'manager_backend', 'admin'],
   },
   // uat-portal §1: 封測期間限定入口 — 顯示給所有角色,未填項數做為 badge。
   // 後續若改為「問題回報」常設專區,可保留此 nav 並換 badge 邏輯。
-  { href: '/uat', label: '測試回報', icon: ClipboardCheck, badgeKey: 'uat_pending' },
+  { href: '/uat', label: '內部封測回報', icon: ClipboardCheck, badgeKey: 'uat_pending' },
   // uat-portal §5: Admin 總覽 — 縮排在「測試回報」下方,僅 admin 可見。
   { href: '/uat/admin', label: 'Admin 總覽', icon: BarChart, roles: ['admin'], indent: true },
   {
