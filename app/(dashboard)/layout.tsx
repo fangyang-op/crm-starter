@@ -64,9 +64,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F9FAFC]">
+    // h-screen + overflow-hidden 把整個 layout 鎖在 viewport 高度內,
+    // 讓 Sidebar 與右側內容區獨立捲動 — 否則 min-h-screen 會讓內容超
+    // 過視窗時整頁滾動(Sidebar 跟著走)。
+    <div className="flex h-screen overflow-hidden bg-[#F9FAFC]">
       <Sidebar role={profile.role} badges={badges} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex h-screen min-w-0 flex-1 flex-col">
         <Topbar
           fullName={profile.full_name}
           displayName={profile.display_name}

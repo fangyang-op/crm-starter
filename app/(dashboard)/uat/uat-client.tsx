@@ -265,24 +265,38 @@ function UatItemRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pl-12">
+        {/* 顏色由 className 完全控制(不依賴 variant)— 否則 default/outline
+            的灰色文字會與 bg-green-600 衝突。固定 min-w 80px 讓兩顆按鈕一樣寬,
+            whitespace-nowrap 避免 icon+文字斷行。*/}
         <Button
           type="button"
           size="sm"
-          variant={item.result === 'pass' ? 'default' : 'outline'}
-          className={cn(item.result === 'pass' && 'bg-green-600 hover:bg-green-700')}
+          variant="outline"
+          className={cn(
+            'min-w-20 whitespace-nowrap',
+            item.result === 'pass'
+              ? 'border-green-600 bg-green-600 text-white hover:bg-green-700 hover:text-white'
+              : 'border-green-300 bg-white text-green-700 hover:bg-green-50 hover:text-green-700',
+          )}
           onClick={() => saveResult('pass')}
           disabled={pending}
         >
-          <Check size={14} className="mr-1" /> 通過
+          <Check size={14} /> 通過
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={item.result === 'fail' ? 'destructive' : 'outline'}
+          variant="outline"
+          className={cn(
+            'min-w-20 whitespace-nowrap',
+            item.result === 'fail'
+              ? 'border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white'
+              : 'border-red-300 bg-white text-red-700 hover:bg-red-50 hover:text-red-700',
+          )}
           onClick={() => saveResult('fail')}
           disabled={pending}
         >
-          <X size={14} className="mr-1" /> 失敗
+          <X size={14} /> 失敗
         </Button>
       </div>
 
