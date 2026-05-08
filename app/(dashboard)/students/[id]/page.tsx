@@ -48,21 +48,92 @@ function fmt(value: string | number | null | undefined): React.ReactNode {
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
+
+  // perf: 把 13 個原本串列的 await 拆成兩輪 Promise.all。
+  //
+  // Phase 1(全部互不依賴,只需要 params.id;auth 跟學生主檔可以同時抓):
+  //   * auth.getUser()
+  //   * students.select(*)
+  //   * deals.count、applications enrolled count
+  //   * student_credentials / student_contacts / student_defers
+  //   * document_templates / student_required_documents
+  //   * student_statuses
+  //
+  // Phase 2(需要 user.id 或 student 欄位才能查):
+  //   * profiles(me / role)
+  //   * profiles(顧問 lookup,profileIds 來自 student.frontend / backend /
+  //     lead_source_user_id)
+  //   * referrers(若 student 有填轉介人 id)
+  //   * lead_sources(若 student 有填來源 id)
+  //
+  // 從 ~13 RTT 串列降到 2 輪平行,RTT 100ms 估算:1300ms → 200ms。
+  const [
+    authResult,
+    studentResult,
+    dealCountResult,
+    enrolledCountResult,
+    credentialsResult,
+    contactsResult,
+    templatesResult,
+    srdResult,
+    defersResult,
+    statusesResult,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('students').select('*').eq('id', params.id).is('deleted_at', null).maybeSingle(),
+    // Spec § 2.9: 選校表 / 文件 / 申請 tabs 鎖在 deal>0;deals 沒 soft-delete。
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('student_id', params.id),
+    // Spec § 2.10: visa/housing 帳密卡片在至少一筆 application 達到 enrolled
+    // 才解鎖。
+    supabase
+      .from('applications')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', params.id)
+      .eq('status', 'enrolled'),
+    supabase
+      .from('student_credentials' as never)
+      .select('id, credential_type, label, url, account, password_encrypted, notes')
+      .eq('student_id' as never, params.id as never),
+    // duplicate-prevention §3C:per學生關係人(家長 / 監護人),RLS 與
+    // student_status_history 同條件 — manager+ 全看、consultant 看自己的學生。
+    supabase
+      .from('student_contacts' as never)
+      .select('id, relation, name, phone, email, line_id, is_primary_contact, notes, created_at')
+      .eq('student_id' as never, params.id as never)
+      .order('is_primary_contact' as never, { ascending: false })
+      .order('created_at' as never, { ascending: true }),
+    // Required-documents checklist (spec § 2.11):org-wide template 與此學生
+    // 的個別狀態 join。模板沒對應的 row 時也要顯示(由 toggle/upload 才 upsert)。
+    supabase
+      .from('document_templates' as never)
+      .select('id, code, label_zh, category, notes, default_required, sort_order, is_active')
+      .eq('is_active' as never, true as never)
+      .order('sort_order' as never, { ascending: true }),
+    supabase
+      .from('student_required_documents' as never)
+      .select('id, document_template_id, is_required, status, file_path')
+      .eq('student_id' as never, params.id as never),
+    // Defer 延後入學歷史(最新在前)
+    supabase
+      .from('student_defers' as never)
+      .select(
+        'id, original_enrollment_date, new_enrollment_date, reason, agreement_file_path, created_at',
+      )
+      .eq('student_id' as never, params.id as never)
+      .order('created_at' as never, { ascending: false }),
+    // student_statuses 給 changer dialog 與目前狀態徽章用。
+    supabase
+      .from('student_statuses' as never)
+      .select('id, code, label_zh, category, color_key, sort_order, is_active')
+      .order('sort_order' as never, { ascending: true }),
+  ])
+
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = authResult
   if (!user) redirect('/login')
 
-  const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!me) redirect('/login')
-
-  const { data: student, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', params.id)
-    .is('deleted_at', null)
-    .maybeSingle()
-
+  const { data: student, error } = studentResult
   if (error) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-6">
@@ -74,66 +145,14 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   }
   if (!student) notFound()
 
-  const profileIds = [
-    student.frontend_consultant_id,
-    student.backend_consultant_id,
-    student.lead_source_user_id,
-  ].filter((v): v is string => Boolean(v))
-  const { data: consultants } =
-    profileIds.length > 0
-      ? await supabase.from('profiles').select('id, full_name, display_name').in('id', profileIds)
-      : { data: [] as Array<{ id: string; full_name: string; display_name: string | null }> }
-  const consultantMap = new Map(
-    (consultants ?? []).map((c) => [c.id, c.display_name || c.full_name]),
-  )
+  // ────────── Phase 1 整理 ──────────
+  const dealCount = dealCountResult.count ?? 0
+  const hasDeal = dealCount > 0
+  const enrolledCount = enrolledCountResult.count ?? 0
+  const credentialsUnlocked = enrolledCount > 0
 
-  const sourceReferrerName = student.lead_source_referrer_id
-    ? ((
-        await supabase
-          .from('referrers')
-          .select('name')
-          .eq('id', student.lead_source_referrer_id)
-          .maybeSingle()
-      ).data?.name ?? null)
-    : null
-
-  const leadSourceId = (student as { lead_source_id?: string | null }).lead_source_id
-  const leadSourceLabel = leadSourceId
-    ? ((
-        (
-          await supabase
-            .from('lead_sources' as never)
-            .select('label_zh')
-            .eq('id' as never, leadSourceId as never)
-            .maybeSingle()
-        ).data as unknown as { label_zh?: string } | null
-      )?.label_zh ?? null)
-    : null
-
-  // Spec § 2.9: 選校表 / 文件 / 申請 tabs are locked until at least one deal
-  // exists for this student. Deals don't have a soft-delete flag; any row
-  // counts as "成交建立".
-  const { count: dealCount } = await supabase
-    .from('deals')
-    .select('id', { count: 'exact', head: true })
-    .eq('student_id', params.id)
-  const hasDeal = (dealCount ?? 0) > 0
-
-  // Spec § 2.10: visa/housing credential cards unlock once at least one
-  // application has reached status='enrolled'.
-  const { count: enrolledCount } = await supabase
-    .from('applications')
-    .select('id', { count: 'exact', head: true })
-    .eq('student_id', params.id)
-    .eq('status', 'enrolled')
-  const credentialsUnlocked = (enrolledCount ?? 0) > 0
-
-  const { data: credentialsRaw } = await supabase
-    .from('student_credentials' as never)
-    .select('id, credential_type, label, url, account, password_encrypted, notes')
-    .eq('student_id' as never, params.id as never)
   const credentials = (
-    (credentialsRaw ?? []) as unknown as Array<{
+    (credentialsResult.data ?? []) as unknown as Array<{
       id: string
       credential_type: 'visa' | 'housing'
       label: string
@@ -154,17 +173,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const visaCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'visa')
   const housingCreds: CredentialItem[] = credentials.filter((c) => c.credential_type === 'housing')
 
-  // duplicate-prevention §3C: per-student contacts (parents / guardians / etc).
-  // RLS on student_contacts mirrors student_status_history — manager+/admin
-  // see all, consultants see only their own students' rows. Cast through
-  // never since codegen hasn't seen the new table yet.
-  const { data: contactsRaw } = await supabase
-    .from('student_contacts' as never)
-    .select('id, relation, name, phone, email, line_id, is_primary_contact, notes, created_at')
-    .eq('student_id' as never, params.id as never)
-    .order('is_primary_contact' as never, { ascending: false })
-    .order('created_at' as never, { ascending: true })
-  const contacts = (contactsRaw ?? []) as unknown as Array<{
+  const contacts = (contactsResult.data ?? []) as unknown as Array<{
     id: string
     relation: string
     name: string
@@ -175,21 +184,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     notes: string | null
   }>
 
-  // Required-documents checklist (spec § 2.11): join the org-wide templates
-  // table with this student's per-row state. We render every active template
-  // even if no row exists yet — the row gets upserted by toggle/upload.
-  const [{ data: templatesRaw }, { data: srdRaw }] = await Promise.all([
-    supabase
-      .from('document_templates' as never)
-      .select('id, code, label_zh, category, notes, default_required, sort_order, is_active')
-      .eq('is_active' as never, true as never)
-      .order('sort_order' as never, { ascending: true }),
-    supabase
-      .from('student_required_documents' as never)
-      .select('id, document_template_id, is_required, status, file_path')
-      .eq('student_id' as never, params.id as never),
-  ])
-  const templates = (templatesRaw ?? []) as unknown as Array<{
+  const templates = (templatesResult.data ?? []) as unknown as Array<{
     id: string
     code: string
     label_zh: string
@@ -198,7 +193,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     default_required: boolean
     sort_order: number
   }>
-  const srdRows = (srdRaw ?? []) as unknown as Array<{
+  const srdRows = (srdResult.data ?? []) as unknown as Array<{
     id: string
     document_template_id: string
     is_required: boolean
@@ -221,25 +216,54 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     }
   })
 
-  // Defer history (latest first)
-  const { data: defersRaw } = await supabase
-    .from('student_defers' as never)
-    .select(
-      'id, original_enrollment_date, new_enrollment_date, reason, agreement_file_path, created_at',
-    )
-    .eq('student_id' as never, params.id as never)
-    .order('created_at' as never, { ascending: false })
-  const deferRecords = (defersRaw ?? []) as unknown as DeferRecord[]
+  const deferRecords = (defersResult.data ?? []) as unknown as DeferRecord[]
 
-  // student_statuses for the changer dialog (active only) + the current status row.
-  const { data: statusesRaw } = await supabase
-    .from('student_statuses' as never)
-    .select('id, code, label_zh, category, color_key, sort_order, is_active')
-    .order('sort_order' as never, { ascending: true })
-  const allStatuses = (statusesRaw ?? []) as unknown as StudentStatusRow[]
+  const allStatuses = (statusesResult.data ?? []) as unknown as StudentStatusRow[]
   const studentStatusId = (student as { status_id?: string | null }).status_id ?? null
   const currentStatus =
     (studentStatusId ? allStatuses.find((s) => s.id === studentStatusId) : null) ?? null
+
+  // ────────── Phase 2:依賴 user.id / student 欄位的查詢 ──────────
+  const profileIds = [
+    student.frontend_consultant_id,
+    student.backend_consultant_id,
+    student.lead_source_user_id,
+  ].filter((v): v is string => Boolean(v))
+  const leadSourceId = (student as { lead_source_id?: string | null }).lead_source_id
+
+  // Promise.all 不接 undefined,所以條件式查詢用 Promise.resolve 包成 noop。
+  const [meResult, consultantsResult, referrerResult, leadSourceResult] = await Promise.all([
+    supabase.from('profiles').select('role').eq('id', user.id).single(),
+    profileIds.length > 0
+      ? supabase.from('profiles').select('id, full_name, display_name').in('id', profileIds)
+      : Promise.resolve({
+          data: [] as Array<{ id: string; full_name: string; display_name: string | null }>,
+        }),
+    student.lead_source_referrer_id
+      ? supabase
+          .from('referrers')
+          .select('name')
+          .eq('id', student.lead_source_referrer_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { name: string } | null }),
+    leadSourceId
+      ? supabase
+          .from('lead_sources' as never)
+          .select('label_zh')
+          .eq('id' as never, leadSourceId as never)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  const me = meResult.data
+  if (!me) redirect('/login')
+
+  const consultantMap = new Map(
+    (consultantsResult.data ?? []).map((c) => [c.id, c.display_name || c.full_name]),
+  )
+  const sourceReferrerName = referrerResult.data?.name ?? null
+  const leadSourceLabel =
+    (leadSourceResult.data as unknown as { label_zh?: string } | null)?.label_zh ?? null
 
   const role = me.role as UserRole
   const canDelete = isManagerOrAdmin(role)
@@ -310,13 +334,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       ) : null}
 
       <Tabs defaultValue="overview">
-        {/* 與學生列表篩選 tab 同款外觀:
-              容器 : 白底 + 1px #E5E7EB 邊 + 8px 圓角 + 6px 8px 內距
+        {/* 改成與學生列表篩選 tab 同款的視覺 — 無外框 card、無底色,直接平排:
               未選中:灰字、無底
               hover :  bg #FBE9EF + 品牌色文字
               選中  :  bg-primary + 白字 + 6px 圓角
             tabs.tsx 的 default classes 用 tailwind-merge 後段覆蓋。 */}
-        <TabsList className="flex h-auto flex-wrap justify-start gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5">
+        <TabsList className="h-auto justify-start gap-1 rounded-none bg-transparent p-0">
           {[
             { value: 'overview', label: '概覽' },
             { value: 'timeline', label: '時間軸' },

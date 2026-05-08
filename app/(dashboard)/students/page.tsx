@@ -1,16 +1,17 @@
-import { Suspense } from 'react'
 import Link from 'next/link'
 
 import { Plus, Users } from 'lucide-react'
 
+import { StudentsListRow } from '@/components/students/students-list-row'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { StudentStatusRow } from '@/lib/constants/student-status'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 
-import { StudentTable, StudentTableSkeleton } from './student-table'
+const PAGE_SIZE = 20
 
 type SearchParams = {
   q?: string
@@ -27,30 +28,43 @@ export const metadata = { title: '學生 — 放洋全端 CRM 平台' }
 export default async function StudentsListPage({ searchParams }: { searchParams: SearchParams }) {
   const supabase = createClient()
 
-  // perf: shell 只跑兩個必要 query —
-  //   1. 全部 active 學生狀態(下拉選單 + 狀態徽章 map)
-  //   2. 待分配後端 tab badge 的 count
-  // 主表格資料(students + profiles + deals)獨立到 <StudentTable> 並用
-  // Suspense 包住,讓 header / tabs / search form 立即 render。
-  const { data: statusesRaw } = await supabase
-    .from('student_statuses' as never)
-    .select('id, code, label_zh, category, color_key, sort_order, is_active')
-    .order('sort_order' as never, { ascending: true })
-  const allStatuses = (statusesRaw ?? []) as unknown as StudentStatusRow[]
-  const statusMap = new Map(allStatuses.map((s) => [s.id, s]))
+  const page = Math.max(1, Number(searchParams.page ?? 1))
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
 
   const q = searchParams.q?.trim()
   const status = searchParams.status?.trim()
   const cat = searchParams.cat?.trim()
-  const backendFilter = searchParams.backend?.trim()
+  const backendFilter = searchParams.backend?.trim() // 'unassigned' or undefined
   const isUnassignedTab = backendFilter === 'unassigned'
-  const page = Math.max(1, Number(searchParams.page ?? 1))
 
+  // perf: 5 段查詢拆成兩輪 Promise.all。
+  //
+  // Phase 1(無相互依賴):statuses 與 profiles 名單。statuses 用來解析
+  // 篩選類別 id;profiles 用來把 frontend/backend_consultant_id 轉名字。
+  //
+  // Phase 2(需要 statuses 才能算 category id sets):主表查詢 +
+  // unassignedBackendCount。
+  const [statusesResult, profilesResult] = await Promise.all([
+    supabase
+      .from('student_statuses' as never)
+      .select('id, code, label_zh, category, color_key, sort_order, is_active')
+      .order('sort_order' as never, { ascending: true }),
+    supabase.from('profiles').select('id, full_name, display_name'),
+  ])
+  const allStatuses = (statusesResult.data ?? []) as unknown as StudentStatusRow[]
+  const statusMap = new Map(allStatuses.map((s) => [s.id, s]))
+  const profileMap = new Map(
+    (profilesResult.data ?? []).map((p) => [p.id, p.display_name || p.full_name]),
+  )
+
+  // Status filter accepts a status code (stable across renames) or status id.
   const matchedStatus = status
     ? (allStatuses.find((s) => s.code === status) ?? allStatuses.find((s) => s.id === status))
     : null
 
-  // 算 待分配後端 tab badge — 與當前 filter 無關,顯示全公司未分配總數。
+  // Pre-compute id sets for category-based filters. v1.1 §3B/3A — 待分配後端
+  // means backend NULL AND status in 已成交 (closed) or 申請中 (application).
   const statusIdsByCategory = (category: string) =>
     allStatuses.filter((s) => s.category === category).map((s) => s.id)
   const recruitmentIds = statusIdsByCategory('recruitment')
@@ -58,16 +72,80 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
   const closedIds = statusIdsByCategory('closed')
   const postDealIds = [...closedIds, ...applicationIds]
 
-  let unassignedBackendCount = 0
-  if (postDealIds.length > 0) {
-    const { count: c } = await supabase
-      .from('students')
-      .select('id', { count: 'exact', head: true })
-      .is('deleted_at', null)
-      .is('backend_consultant_id', null)
-      .in('status_id' as never, postDealIds as never)
-    unassignedBackendCount = c ?? 0
+  let query = supabase
+    .from('students')
+    .select(
+      'id, full_name, english_name, status_id, frontend_consultant_id, backend_consultant_id, target_country, target_degree, target_intake, created_at',
+      { count: 'exact' },
+    )
+    .is('deleted_at', null)
+
+  if (q) {
+    const like = `%${q}%`
+    query = query.or(`full_name.ilike.${like},english_name.ilike.${like},email.ilike.${like}`)
   }
+
+  if (matchedStatus) {
+    query = query.eq('status_id' as never, matchedStatus.id as never)
+  }
+
+  if (cat === 'recruitment' && recruitmentIds.length > 0) {
+    query = query.in('status_id' as never, recruitmentIds as never)
+  } else if (cat === 'application' && applicationIds.length > 0) {
+    query = query.in('status_id' as never, applicationIds as never)
+  }
+
+  if (isUnassignedTab) {
+    if (postDealIds.length === 0) {
+      // No 已成交+ statuses configured (shouldn't happen post-0026 seed).
+      // Force an empty result by filtering on a no-match.
+      query = query.eq('status_id' as never, '00000000-0000-0000-0000-000000000000' as never)
+    } else {
+      query = query.is('backend_consultant_id', null).in('status_id' as never, postDealIds as never)
+    }
+    // Spec: 越早成交的排越前面. We don't have signed_at on students, so use
+    // created_at ASC as the proxy — the deal lookup below shows 成交日期 in
+    // the column. Visually equivalent for the "等待多久" intent.
+    query = query.order('created_at', { ascending: true })
+  } else {
+    query = query.order('created_at', { ascending: false })
+  }
+
+  query = query.range(from, to)
+
+  // Phase 2: 主表查詢 + unassignedBackendCount 平行 — count 與當前篩選互不
+  // 影響(永遠顯示全公司未分配總數),所以可以同時跑。
+  const [mainResult, unassignedCountResult] = await Promise.all([
+    query,
+    postDealIds.length > 0
+      ? supabase
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .is('backend_consultant_id', null)
+          .in('status_id' as never, postDealIds as never)
+      : Promise.resolve({ count: 0 }),
+  ])
+  const { data: students, count, error } = mainResult
+  const unassignedBackendCount = unassignedCountResult.count ?? 0
+
+  // Phase 3: 待分配後端 tab 才需要的成交日期 lookup。依賴 students 結果,
+  // 無法與 main query 平行;沒在這個 tab 時整段跳過。
+  const studentIds = (students ?? []).map((s) => (s as unknown as { id: string }).id)
+  const signedAtByStudent = new Map<string, string>()
+  if (isUnassignedTab && studentIds.length > 0) {
+    const { data: deals } = await supabase
+      .from('deals')
+      .select('student_id, signed_at')
+      .in('student_id', studentIds)
+      .order('signed_at', { ascending: true })
+    for (const d of (deals ?? []) as Array<{ student_id: string; signed_at: string }>) {
+      // First (oldest) deal wins because the result is sorted ASC.
+      if (!signedAtByStudent.has(d.student_id)) signedAtByStudent.set(d.student_id, d.signed_at)
+    }
+  }
+
+  const totalPages = count ? Math.max(1, Math.ceil(count / PAGE_SIZE)) : 1
 
   const tabFilters: Array<{
     label: string
@@ -98,10 +176,6 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
     },
   ]
 
-  // Suspense key — searchParams 變動時讓內層重新 mount + 重新顯示 skeleton,
-  // 避免上一頁資料殘留閃一下。包含所有影響查詢的 param。
-  const tableKey = JSON.stringify({ q, status, cat, backendFilter, page })
-
   return (
     <div className="mx-auto max-w-7xl space-y-4 px-6 py-6">
       <header className="flex items-center justify-between">
@@ -111,7 +185,8 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
             學生專案管理
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {q || status || cat || isUnassignedTab ? '已套用篩選' : '全公司學生名單'}
+            {count ?? 0} 位學生
+            {q || status || cat || isUnassignedTab ? ` · 已套用篩選` : ''}
           </p>
         </div>
         <Button asChild>
@@ -211,19 +286,133 @@ export default async function StudentsListPage({ searchParams }: { searchParams:
         )}
       </form>
 
-      <Suspense key={tableKey} fallback={<StudentTableSkeleton />}>
-        <StudentTable
-          page={page}
-          q={q}
-          matchedStatus={matchedStatus}
-          cat={cat}
-          isUnassignedTab={isUnassignedTab}
-          recruitmentIds={recruitmentIds}
-          applicationIds={applicationIds}
-          postDealIds={postDealIds}
-          statusMap={statusMap}
-        />
-      </Suspense>
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">
+          載入失敗:{error.message}
+        </div>
+      ) : !students || students.length === 0 ? (
+        <div className="rounded-lg border border-dashed bg-card p-12 text-center text-sm text-muted-foreground shadow-sm">
+          尚無學生資料
+          {q || status || cat || isUnassignedTab
+            ? '(目前的篩選沒有結果)'
+            : '。點右上「新增學生」開始'}
+        </div>
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead>前端顧問</TableHead>
+                  <TableHead>後端顧問</TableHead>
+                  <TableHead>目標</TableHead>
+                  {isUnassignedTab ? <TableHead>成交日期</TableHead> : null}
+                  <TableHead className="text-right">建立時間</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((row) => {
+                  const s = row as unknown as {
+                    id: string
+                    full_name: string
+                    english_name: string | null
+                    status_id: string
+                    frontend_consultant_id: string | null
+                    backend_consultant_id: string | null
+                    target_country: string[] | null
+                    target_degree: string | null
+                    target_intake: string | null
+                    created_at: string
+                  }
+                  const status = statusMap.get(s.status_id)
+                  const target =
+                    [s.target_country?.join(' / '), s.target_degree, s.target_intake]
+                      .filter(Boolean)
+                      .join(' · ') || '—'
+                  return (
+                    <StudentsListRow
+                      key={s.id}
+                      student={{
+                        id: s.id,
+                        full_name: s.full_name,
+                        english_name: s.english_name,
+                        status_label: status?.label_zh ?? '—',
+                        status_color_key: status?.color_key ?? null,
+                        frontend_consultant_name: s.frontend_consultant_id
+                          ? (profileMap.get(s.frontend_consultant_id) ?? null)
+                          : null,
+                        backend_consultant_name: s.backend_consultant_id
+                          ? (profileMap.get(s.backend_consultant_id) ?? null)
+                          : null,
+                        target,
+                        created_at: s.created_at,
+                        deal_signed_at: isUnassignedTab
+                          ? (signedAtByStudent.get(s.id) ?? null)
+                          : undefined,
+                      }}
+                    />
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {totalPages > 1 ? (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              q={q}
+              status={status}
+              cat={cat}
+              backend={isUnassignedTab ? 'unassigned' : undefined}
+            />
+          ) : null}
+        </>
+      )}
     </div>
+  )
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  q,
+  status,
+  cat,
+  backend,
+}: {
+  currentPage: number
+  totalPages: number
+  q?: string
+  status?: string
+  cat?: string
+  backend?: string
+}) {
+  const buildHref = (p: number) => {
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    if (status) params.set('status', status)
+    if (cat) params.set('cat', cat)
+    if (backend) params.set('backend', backend)
+    if (p > 1) params.set('page', String(p))
+    const query = params.toString()
+    return `/students${query ? `?${query}` : ''}`
+  }
+  return (
+    <nav className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">
+        第 {currentPage} 頁,共 {totalPages} 頁
+      </span>
+      <div className="flex gap-2">
+        <Button asChild variant="outline" size="sm" disabled={currentPage <= 1}>
+          <Link href={buildHref(Math.max(1, currentPage - 1))}>上一頁</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" disabled={currentPage >= totalPages}>
+          <Link href={buildHref(Math.min(totalPages, currentPage + 1))}>下一頁</Link>
+        </Button>
+      </div>
+    </nav>
   )
 }
