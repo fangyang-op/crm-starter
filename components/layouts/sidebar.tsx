@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import {
+  BarChart,
   BarChart3,
   ClipboardCheck,
   FileCheck,
@@ -28,6 +29,8 @@ type NavItem = {
   roles?: UserRole[]
   /** Optional dynamic badge key — see `badges` prop on Sidebar. */
   badgeKey?: 'uat_pending'
+  /** 子項目視覺縮排;只在展開模式生效(收合模式仍是 icon-only)。 */
+  indent?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -50,6 +53,8 @@ const NAV_ITEMS: NavItem[] = [
   // uat-portal §1: 封測期間限定入口 — 顯示給所有角色,未填項數做為 badge。
   // 後續若改為「問題回報」常設專區,可保留此 nav 並換 badge 邏輯。
   { href: '/uat', label: '測試回報', icon: ClipboardCheck, badgeKey: 'uat_pending' },
+  // uat-portal §5: Admin 總覽 — 縮排在「測試回報」下方,僅 admin 可見。
+  { href: '/uat/admin', label: 'Admin 總覽', icon: BarChart, roles: ['admin'], indent: true },
   {
     href: '/settings',
     label: '設定',
@@ -162,7 +167,12 @@ export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadg
               title={collapsed ? item.label : undefined}
               className={cn(
                 'relative flex items-center gap-3 rounded-md text-sm transition-colors',
-                collapsed ? 'h-10 justify-center px-2' : 'px-3 py-2',
+                collapsed
+                  ? 'h-10 justify-center px-2'
+                  : item.indent
+                    ? // 子項目:左側 padding 2.5rem 讓 icon 對齊父項標籤起點。
+                      'py-2 pl-10 pr-3'
+                    : 'px-3 py-2',
                 active
                   ? // Spec §1.3: active = brand bg @ 10% + brand text + 2px
                     // left bar. The bar is rendered as a ::before via an inset
