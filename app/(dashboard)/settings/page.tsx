@@ -56,9 +56,7 @@ export default async function SettingsIndexPage() {
                 <ChevronRight className="text-muted-foreground" size={16} />
               </CardHeader>
               <CardContent>
-                <CardDescription>
-                  學生來源類型(自開、行銷分配、外部轉介…)。Admin 可新增、改名、調順序、停用。
-                </CardDescription>
+                <CardDescription>學生來源類型。Admin 可新增、改名、調順序、停用。</CardDescription>
               </CardContent>
             </Card>
           </Link>
