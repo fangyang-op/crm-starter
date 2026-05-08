@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 
+import { ClipboardCheck } from 'lucide-react'
+
 import { createClient } from '@/lib/supabase/server'
 import type { UserRole } from '@/lib/constants/roles'
 
@@ -102,7 +104,10 @@ export default async function UatPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-4 px-6 py-6">
       <header>
-        <h1 className="text-2xl font-semibold">測試回報</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          <ClipboardCheck size={22} className="text-primary" />
+          內部封測回報
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           請依章節逐項測試,選擇通過/失敗並選填備註與截圖。系統會自動儲存,
           可隨時關掉視窗下次回來繼續。

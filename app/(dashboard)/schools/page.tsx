@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { Plus } from 'lucide-react'
+import { GraduationCap, Plus } from 'lucide-react'
 
 import { SchoolFormDialog } from '@/components/schools/school-form-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -72,7 +72,10 @@ export default async function SchoolsListPage({ searchParams }: { searchParams: 
     <div className="mx-auto max-w-7xl space-y-4 px-6 py-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">學校</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <GraduationCap size={22} className="text-primary" />
+            常用院校檢索
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {count ?? 0} 所學校{q || country ? ` · 已套用篩選` : ''}
           </p>

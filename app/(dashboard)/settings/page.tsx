@@ -1,6 +1,14 @@
 import Link from 'next/link'
 
-import { ChevronRight, KeyRound, ListTree, Package, Tags, UserSquare } from 'lucide-react'
+import {
+  ChevronRight,
+  KeyRound,
+  ListTree,
+  Package,
+  Settings as SettingsIcon,
+  Tags,
+  UserSquare,
+} from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { isAdmin, type UserRole } from '@/lib/constants/roles'
@@ -23,7 +31,10 @@ export default async function SettingsIndexPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-6">
       <header>
-        <h1 className="text-2xl font-semibold">設定</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          <SettingsIcon size={22} className="text-primary" />
+          設定
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">系統與業務基礎資料管理</p>
       </header>
 

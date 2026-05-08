@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { AlertTriangle, ArrowRight, Lightbulb } from 'lucide-react'
+import { AlertTriangle, ArrowRight, LayoutDashboard, Lightbulb } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -45,7 +45,10 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 px-6 py-6">
-      <h1 className="text-2xl font-semibold">儀表板</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-semibold">
+        <LayoutDashboard size={22} className="text-primary" />
+        儀表板
+      </h1>
       <p className="text-sm text-muted-foreground">
         歡迎回來,{user?.email}。Phase 5 會在這裡放 KPI 卡與待辦清單。
       </p>
