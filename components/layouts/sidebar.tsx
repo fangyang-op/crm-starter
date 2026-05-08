@@ -148,7 +148,10 @@ export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadg
               priority
             />
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-[0.95rem] font-bold" style={{ color: '#C7315C' }}>
+              {/* 240px sidebar - 32px(px-4) - 28px(logo) - 16px(gaps) - 32px(button)
+                  ≈ 132px 可用寬度。13px 字體在這個寬度下能完整顯示 11 字元
+                  標題;若仍被截斷再降到 12px。*/}
+              <span className="truncate font-bold" style={{ color: '#C7315C', fontSize: '13px' }}>
                 放洋全端 CRM 平台
               </span>
               <span className="truncate text-[0.7rem] text-muted-foreground">顧問資訊整合中心</span>
