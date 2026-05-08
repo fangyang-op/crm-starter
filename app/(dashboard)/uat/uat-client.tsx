@@ -75,35 +75,37 @@ export function UatClient({ chapters: initial }: { chapters: UatChapterDto[] }) 
 
   return (
     <div className="space-y-4">
-      {/* 章節 tab — 完成綠、進行中藍、未開始灰。橫向 scroll 在窄螢幕保持
-          不換行,避免章節數變多時 layout 跳動。*/}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* 章節 tab — 三種視覺狀態:選中(active=品牌色)、已完成(綠)、
+          其餘(灰)。pill 樣式(rounded-full + py-1.5 px-4),橫向不換行,
+          超出視窗範圍時可滑動。*/}
+      <div className="flex gap-2 overflow-x-auto whitespace-nowrap pb-1">
         {chapters.map((c, idx) => {
           const status = chapterStatus(c.items)
           const isActive = idx === activeIdx
+          const filled = c.items.filter((i) => i.result !== null).length
           return (
             <button
               key={c.meta.id}
               type="button"
               onClick={() => setActiveIdx(idx)}
               className={cn(
-                'shrink-0 rounded-md border px-3 py-1.5 text-sm transition-colors',
-                isActive && 'ring-2 ring-primary ring-offset-1',
-                status === 'done' && 'border-green-200 bg-green-50 text-green-700',
-                status === 'progress' && !isActive && 'border-primary/30 bg-primary/5 text-primary',
-                status === 'idle' && 'border-muted bg-card text-muted-foreground',
-                isActive && status === 'idle' && 'text-foreground',
+                'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'border-primary bg-white text-primary'
+                  : status === 'done'
+                    ? 'border-green-300 bg-green-50 text-green-700'
+                    : 'border-[#E5E7EB] bg-white text-gray-500 hover:bg-gray-50',
               )}
             >
-              <span className="font-medium">
+              <span>
                 {idx + 1}. {c.meta.title_zh}
               </span>
-              {status === 'progress' ? (
-                <span className="ml-1 text-xs">
-                  ({c.items.filter((i) => i.result !== null).length}/{c.items.length})
+              {status === 'progress' && !isActive ? (
+                <span className="text-xs opacity-70">
+                  ({filled}/{c.items.length})
                 </span>
               ) : null}
-              {status === 'done' ? <Check size={12} className="ml-1 inline" /> : null}
+              {status === 'done' ? <Check size={12} /> : null}
             </button>
           )
         })}
