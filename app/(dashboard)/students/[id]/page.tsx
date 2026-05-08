@@ -310,20 +310,34 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       ) : null}
 
       <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">概覽</TabsTrigger>
-          <TabsTrigger value="timeline">時間軸</TabsTrigger>
-          <TabsTrigger value="scores">成績</TabsTrigger>
-          <TabsTrigger value="deals">成交</TabsTrigger>
-          <TabsTrigger value="schools" disabled={!hasDeal}>
-            選校表 {!hasDeal ? '🔒' : ''}
-          </TabsTrigger>
-          <TabsTrigger value="documents" disabled={!hasDeal}>
-            文件 {!hasDeal ? '🔒' : ''}
-          </TabsTrigger>
-          <TabsTrigger value="applications" disabled={!hasDeal}>
-            申請 {!hasDeal ? '🔒' : ''}
-          </TabsTrigger>
+        {/* 改成與學生列表篩選 tab 同款的視覺 — 無外框 card、無底色,直接平排:
+              未選中:灰字、無底
+              hover :  bg #FBE9EF + 品牌色文字
+              選中  :  bg-primary + 白字 + 6px 圓角
+            tabs.tsx 的 default classes 用 tailwind-merge 後段覆蓋。 */}
+        <TabsList className="h-auto justify-start gap-1 rounded-none bg-transparent p-0">
+          {[
+            { value: 'overview', label: '概覽' },
+            { value: 'timeline', label: '時間軸' },
+            { value: 'scores', label: '成績' },
+            { value: 'deals', label: '成交' },
+            { value: 'schools', label: '選校表', requiresDeal: true },
+            { value: 'documents', label: '文件', requiresDeal: true },
+            { value: 'applications', label: '申請', requiresDeal: true },
+          ].map((t) => {
+            const locked = t.requiresDeal && !hasDeal
+            return (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                disabled={locked}
+                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:bg-[#FBE9EF] hover:text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+              >
+                {t.label}
+                {locked ? ' 🔒' : ''}
+              </TabsTrigger>
+            )
+          })}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
