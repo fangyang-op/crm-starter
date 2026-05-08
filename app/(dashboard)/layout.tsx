@@ -13,54 +13,52 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role, full_name, display_name, email, avatar_url')
-    .eq('id', user.id)
-    .single()
+  // perf: profile 與 UAT badge 三次查詢並行,layout 整體等待時間從原本
+  // 「auth → profile → badge」串列變成「auth → (profile ‖ badge)」。
+  // UAT 三個查詢只看 user.id,不需要 role,filter 在資料抓回來再做。
+  const [profileResult, chaptersResult, itemsResult, filledCountResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('role, full_name, display_name, email, avatar_url')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('uat_chapters' as never)
+      .select('id, target_roles')
+      .eq('is_active' as never, true as never),
+    supabase
+      .from('uat_items' as never)
+      .select('id, chapter_id')
+      .eq('is_active' as never, true as never),
+    supabase
+      .from('uat_results' as never)
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id' as never, user.id as never),
+  ])
 
+  const { data: profile, error } = profileResult
   if (error || !profile) {
     // No profile row for this auth user — bootstrap is incomplete. Force re-login.
     redirect('/login')
   }
 
-  // uat-portal §6: 計算此 user 尚未填寫的 UAT 項目數,做為 sidebar badge。
-  // 步驟:抓所有 active 章節 (依 target_roles 過濾) → 算可見 active items
-  // 總數 → 減掉該 user 已填的 result 數。失敗時 silently → 0,不能讓
-  // dashboard layout 因 UAT 表查不到就壞掉(例如 migration 未跑)。
+  // uat-portal §6: 算這位使用者尚未填寫的 UAT 項目數;UAT 表查不到時走
+  // catch / fallback 0,不能讓 dashboard layout 因為 migration 未跑就壞掉。
   const badges: SidebarBadges = { uat_pending: 0 }
   try {
     const role = profile.role as UserRole
-    const [{ data: chaptersRaw }, { data: itemsRaw }, { count: filledCount }] = await Promise.all([
-      supabase
-        .from('uat_chapters' as never)
-        .select('id, target_roles')
-        .eq('is_active' as never, true as never),
-      supabase
-        .from('uat_items' as never)
-        .select('id, chapter_id')
-        .eq('is_active' as never, true as never),
-      supabase
-        .from('uat_results' as never)
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id' as never, user.id as never),
-    ])
-    const chapters = (chaptersRaw ?? []) as unknown as Array<{
-      id: string
-      target_roles: string[] | null
-    }>
-    const items = (itemsRaw ?? []) as unknown as Array<{ id: string; chapter_id: string }>
-    const visibleChapterIds = new Set(
-      chapters
-        .filter(
-          (c) => !c.target_roles || c.target_roles.length === 0 || c.target_roles.includes(role),
-        )
-        .map((c) => c.id),
-    )
+    const chapters = (
+      (chaptersResult.data ?? []) as unknown as Array<{
+        id: string
+        target_roles: string[] | null
+      }>
+    ).filter((c) => !c.target_roles || c.target_roles.length === 0 || c.target_roles.includes(role))
+    const items = (itemsResult.data ?? []) as unknown as Array<{ id: string; chapter_id: string }>
+    const visibleChapterIds = new Set(chapters.map((c) => c.id))
     const visibleItemTotal = items.filter((i) => visibleChapterIds.has(i.chapter_id)).length
-    badges.uat_pending = Math.max(0, visibleItemTotal - (filledCount ?? 0))
+    badges.uat_pending = Math.max(0, visibleItemTotal - (filledCountResult.count ?? 0))
   } catch {
-    // UAT 表還沒部署就走這條 — badge 設 0 即可,sidebar 自動隱藏。
+    // ditto fallback
   }
 
   return (
