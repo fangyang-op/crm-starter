@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -129,14 +130,28 @@ export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadg
           collapsed ? 'justify-center px-2' : 'justify-between px-4',
         )}
       >
+        {/* 收合時 64px 寬不夠塞 logo + 切換鈕,只保留切換鈕(維持原行為);
+            展開時 logo + 雙行標題並排,標題用酒紅色 #8B1A3A 強化品牌感。*/}
         {collapsed ? null : (
           <Link
             href="/"
-            className="flex flex-1 flex-col truncate leading-tight"
+            className="flex flex-1 items-center gap-2 truncate leading-tight"
             title="放洋全端 CRM 平台"
           >
-            <span className="truncate text-[0.95rem] font-bold">放洋全端 CRM 平台</span>
-            <span className="truncate text-[0.7rem] text-muted-foreground">顧問資訊整合中心</span>
+            <Image
+              src="/logo.svg"
+              width={28}
+              height={28}
+              alt="放洋 Logo"
+              className="shrink-0"
+              priority
+            />
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-[0.95rem] font-bold" style={{ color: '#8B1A3A' }}>
+                放洋全端 CRM 平台
+              </span>
+              <span className="truncate text-[0.7rem] text-muted-foreground">顧問資訊整合中心</span>
+            </div>
           </Link>
         )}
         <button

@@ -24,15 +24,17 @@ type TopbarProps = {
   role: UserRole
 }
 
-function initials(name: string): string {
+/** 中文姓名取第一個字(「馮若陽」→「馮」),英文姓名取第一個字母大寫
+ *  (「Marcus」→「M」)。空字串 fallback「?」。
+ *
+ *  Array.from 確保多字節字元不會被切半;中文字無大寫形態,toUpperCase()
+ *  會把英文轉大寫、漢字保持原樣,所以一行就涵蓋兩種情境。*/
+function firstChar(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return '?'
-  // For Chinese names, take last 2 chars; for English, take first letter of first 2 words.
-  const words = trimmed.split(/\s+/)
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
-  }
-  return trimmed.slice(-2)
+  const first = Array.from(trimmed)[0]
+  if (!first) return '?'
+  return first.toUpperCase()
 }
 
 export function Topbar({ fullName, displayName, email, role }: TopbarProps) {
@@ -43,8 +45,15 @@ export function Topbar({ fullName, displayName, email, role }: TopbarProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5">
+            {/* 圓形品牌色頭像,姓名首字白字置中。font-size 14px / weight 600
+                覆蓋 AvatarFallback 預設的 text-sm。*/}
             <Avatar className="h-7 w-7">
-              <AvatarFallback className="text-xs">{initials(fullName)}</AvatarFallback>
+              <AvatarFallback
+                className="font-semibold text-white"
+                style={{ backgroundColor: '#C7315C', fontSize: '14px' }}
+              >
+                {firstChar(displayName || fullName)}
+              </AvatarFallback>
             </Avatar>
             <div className="hidden text-left sm:block">
               <div className="text-sm font-medium leading-tight">{shown}</div>
