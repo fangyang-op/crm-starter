@@ -310,12 +310,13 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       ) : null}
 
       <Tabs defaultValue="overview">
-        {/* 改成與學生列表篩選 tab 同款的視覺 — 無外框 card、無底色,直接平排:
+        {/* 與學生列表篩選 tab 同款外觀:
+              容器 : 白底 + 1px #E5E7EB 邊 + 8px 圓角 + 6px 8px 內距
               未選中:灰字、無底
               hover :  bg #FBE9EF + 品牌色文字
               選中  :  bg-primary + 白字 + 6px 圓角
             tabs.tsx 的 default classes 用 tailwind-merge 後段覆蓋。 */}
-        <TabsList className="h-auto justify-start gap-1 rounded-none bg-transparent p-0">
+        <TabsList className="flex h-auto flex-wrap justify-start gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5">
           {[
             { value: 'overview', label: '概覽' },
             { value: 'timeline', label: '時間軸' },
