@@ -126,16 +126,17 @@ export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadg
     >
       <div
         className={cn(
-          'flex h-14 items-center border-b',
-          collapsed ? 'justify-center px-2' : 'justify-between px-4',
+          'flex h-14 items-center justify-between gap-2 border-b',
+          collapsed ? 'px-2' : 'px-4',
         )}
       >
-        {/* 收合時 64px 寬不夠塞 logo + 切換鈕,只保留切換鈕(維持原行為);
-            展開時 logo + 雙行標題並排,標題用酒紅色 #8B1A3A 強化品牌感。*/}
+        {/* 收合(64px 寬)只留切換鈕;展開時 logo + 雙行標題並排,標題用品牌
+            色 #C7315C。Link 不用 flex-1,讓它佔自然寬度 + 容器 gap-2 與右側
+            收合鈕之間留出空隙。*/}
         {collapsed ? null : (
           <Link
             href="/"
-            className="flex flex-1 items-center gap-2 truncate leading-tight"
+            className="flex min-w-0 items-center gap-2 truncate leading-tight"
             title="放洋全端 CRM 平台"
           >
             <Image
@@ -147,19 +148,21 @@ export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadg
               priority
             />
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-[0.95rem] font-bold" style={{ color: '#8B1A3A' }}>
+              <span className="truncate text-[0.95rem] font-bold" style={{ color: '#C7315C' }}>
                 放洋全端 CRM 平台
               </span>
               <span className="truncate text-[0.7rem] text-muted-foreground">顧問資訊整合中心</span>
             </div>
           </Link>
         )}
+        {/* ml-auto 把按鈕釘到右側;當 Link 為 null(收合)時,單一子項會被
+            justify-between 視為靠左,改用 mx-auto 維持置中。*/}
         <button
           type="button"
           onClick={toggle}
           className={cn(
-            'inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-            collapsed && 'mt-0',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+            collapsed ? 'mx-auto' : 'ml-auto',
           )}
           aria-label={collapsed ? '展開側邊欄' : '收合側邊欄'}
           title={collapsed ? '展開側邊欄' : '收合側邊欄'}
