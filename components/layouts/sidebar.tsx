@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 
 import {
   BarChart3,
+  ClipboardCheck,
   FileCheck,
   GraduationCap,
   LayoutDashboard,
@@ -25,6 +26,8 @@ type NavItem = {
   label: string
   icon: LucideIcon
   roles?: UserRole[]
+  /** Optional dynamic badge key — see `badges` prop on Sidebar. */
+  badgeKey?: 'uat_pending'
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -44,6 +47,9 @@ const NAV_ITEMS: NavItem[] = [
     icon: LineChart,
     roles: ['manager_frontend', 'manager_backend', 'admin'],
   },
+  // uat-portal §1: 封測期間限定入口 — 顯示給所有角色,未填項數做為 badge。
+  // 後續若改為「問題回報」常設專區,可保留此 nav 並換 badge 邏輯。
+  { href: '/uat', label: '測試回報', icon: ClipboardCheck, badgeKey: 'uat_pending' },
   {
     href: '/settings',
     label: '設定',
@@ -61,7 +67,12 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-export function Sidebar({ role }: { role: UserRole }) {
+export type SidebarBadges = {
+  /** uat-portal §1/§6: 未填寫的測試項目數,= 0 時 badge 隱藏。 */
+  uat_pending?: number
+}
+
+export function Sidebar({ role, badges }: { role: UserRole; badges?: SidebarBadges }) {
   const pathname = usePathname()
   const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role))
 
@@ -140,6 +151,8 @@ export function Sidebar({ role }: { role: UserRole }) {
         {items.map((item) => {
           const Icon = item.icon
           const active = isActive(pathname, item.href)
+          const badgeCount = item.badgeKey ? badges?.[item.badgeKey] : undefined
+          const showBadge = typeof badgeCount === 'number' && badgeCount > 0
           return (
             <Link
               key={item.href}
@@ -166,6 +179,20 @@ export function Sidebar({ role }: { role: UserRole }) {
               ) : null}
               <Icon size={18} className="shrink-0" />
               {collapsed ? null : <span className="truncate">{item.label}</span>}
+              {showBadge ? (
+                collapsed ? (
+                  <span
+                    aria-label={`${badgeCount} 個未完成`}
+                    className="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white"
+                  >
+                    {badgeCount}
+                  </span>
+                ) : (
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold leading-none text-white">
+                    {badgeCount}
+                  </span>
+                )
+              ) : null}
             </Link>
           )
         })}
