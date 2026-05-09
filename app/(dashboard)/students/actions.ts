@@ -170,9 +170,27 @@ export async function createStudent(
   // 912 345 678' / '(02) 5580-2586' all collapse). Empty → null.
   const dbPayload = toDbPayload(parsed.data)
   const normalizedPhone = normalizePhone(dbPayload.phone)
+  const phoneToStore = normalizedPhone === '' ? null : normalizedPhone
+
+  // duplicate-prevention §2A — app-level 重複偵測,只在沒有 duplicateOverride
+  // 時才擋。前端的「確認為不同學生,繼續建立」會帶 override 進來,讓這位
+  // 顧問跳過此檢查直接建立。0037 那個 DB-level UNIQUE 已在 0044 移除,所以
+  // 這裡是唯一的擋點(以前是 DB UNIQUE 擋著 → 即使 override=true 也炸)。
+  if (!duplicateOverride && phoneToStore) {
+    const dup = await checkPhoneDuplicate(phoneToStore)
+    if (dup.ok && dup.isDuplicate) {
+      return {
+        ok: false,
+        error: '此手機號碼已有學生名單存在,請先搜尋現有名單。',
+        code: 'DUPLICATE_PHONE',
+        fieldErrors: { phone: ['此手機號碼已有學生名單存在'] },
+      }
+    }
+  }
+
   const payload = {
     ...dbPayload,
-    phone: normalizedPhone === '' ? null : normalizedPhone,
+    phone: phoneToStore,
     // RLS WITH CHECK: created_by must equal auth.uid()
     created_by: user.id,
     // Required since 0026 — codegen may not have caught up so cast through never.
@@ -181,9 +199,8 @@ export async function createStudent(
   const { data, error } = await supabase.from('students').insert(payload).select('id').single()
 
   if (error) {
-    // duplicate-prevention §5: PG 23505 = unique_violation. Migration 0037
-    // adds students_phone_unique. Surface as a typed error so the form can
-    // render the inline duplicate UI instead of a generic toast.
+    // 0044 後 students 已沒有 phone UNIQUE,但其他欄位若有 UNIQUE
+    // 仍會走 23505。保留作防禦性 fallback。
     if ((error as { code?: string }).code === '23505') {
       return {
         ok: false,
