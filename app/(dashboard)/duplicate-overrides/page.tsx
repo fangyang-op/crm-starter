@@ -57,11 +57,16 @@ export default async function DuplicateOverridesPage() {
           data: [] as Array<{ id: string; full_name: string; display_name: string | null }>,
         }),
     studentIds.length > 0
-      ? supabase.from('students').select('id, full_name').in('id', studentIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
+      ? supabase.from('students').select('id, full_name, created_at').in('id', studentIds)
+      : Promise.resolve({
+          data: [] as Array<{ id: string; full_name: string; created_at: string }>,
+        }),
   ])
   const actorMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name || p.full_name]))
-  const studentMap = new Map((students ?? []).map((s) => [s.id, s.full_name]))
+  // 同時保留姓名與建立時間,讓 DupSlot 可以一眼看出兩筆名單的時序差異。
+  const studentMap = new Map(
+    (students ?? []).map((s) => [s.id, { name: s.full_name, created_at: s.created_at }]),
+  )
 
   return (
     <div className="mx-auto max-w-5xl space-y-4 px-6 py-6">
@@ -82,8 +87,8 @@ export default async function DuplicateOverridesPage() {
           {rows.map((r) => {
             const dupId = r.payload?.duplicate_of_student_id
             const phone = r.payload?.phone
-            const newName = studentMap.get(r.student_id) ?? '(已刪除)'
-            const dupName = dupId ? (studentMap.get(dupId) ?? '(已刪除)') : null
+            const newRow = studentMap.get(r.student_id) ?? null
+            const dupRow = dupId ? (studentMap.get(dupId) ?? null) : null
             const actor = r.actor_id ? (actorMap.get(r.actor_id) ?? '—') : '—'
             const dt = new Date(r.created_at).toLocaleString('zh-TW', {
               timeZone: 'Asia/Taipei',
@@ -101,9 +106,19 @@ export default async function DuplicateOverridesPage() {
                   {phone ? <Badge variant="outline">電話 {phone}</Badge> : null}
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 pt-0 md:grid-cols-2">
-                  <DupSlot label="新建立的學生" name={newName} studentId={r.student_id} />
+                  <DupSlot
+                    label="新建立的學生"
+                    name={newRow?.name ?? '(已刪除)'}
+                    createdAt={newRow?.created_at ?? null}
+                    studentId={r.student_id}
+                  />
                   {dupId ? (
-                    <DupSlot label="既有重複名單" name={dupName ?? '—'} studentId={dupId} />
+                    <DupSlot
+                      label="既有重複名單"
+                      name={dupRow?.name ?? '(已刪除)'}
+                      createdAt={dupRow?.created_at ?? null}
+                      studentId={dupId}
+                    />
                   ) : (
                     <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
                       payload 缺 duplicate_of_student_id — 舊紀錄或被刪除
@@ -119,11 +134,26 @@ export default async function DuplicateOverridesPage() {
   )
 }
 
-function DupSlot({ label, name, studentId }: { label: string; name: string; studentId: string }) {
+function DupSlot({
+  label,
+  name,
+  createdAt,
+  studentId,
+}: {
+  label: string
+  name: string
+  /** 名單建立時間。null 表示學生已被刪除或查不到。 */
+  createdAt: string | null
+  studentId: string
+}) {
+  const builtAt = createdAt
+    ? new Date(createdAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+    : null
   return (
     <div className="rounded-md border bg-muted/30 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 truncate text-sm font-medium">{name}</p>
+      {builtAt ? <p className="mt-0.5 text-xs text-muted-foreground">建立於 {builtAt}</p> : null}
       <Button asChild variant="outline" size="sm" className="mt-2">
         <Link href={`/students/${studentId}`} target="_blank" rel="noopener noreferrer">
           開啟學生
