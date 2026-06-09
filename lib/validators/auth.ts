@@ -38,6 +38,20 @@ export const adminResetPasswordSchema = z.object({
 
 export type AdminResetPasswordInput = z.infer<typeof adminResetPasswordSchema>
 
+// /reset-password 頁(忘記密碼 → recovery 連結)用。沿用同一套 passwordRule,
+// 與後台改密碼 / admin 重設保持一致(長度、含大小寫 + 數字)。
+export const resetPasswordSchema = z
+  .object({
+    new_password: passwordRule,
+    confirm_password: z.string().min(1, '請再次輸入新密碼'),
+  })
+  .refine((d) => d.new_password === d.confirm_password, {
+    path: ['confirm_password'],
+    message: '兩次輸入的新密碼不一致',
+  })
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+
 /**
  * 回傳無偏(uniform)的 [0, maxExclusive) 整數。
  *
