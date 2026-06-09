@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 import { normalizePhone } from '@/lib/utils/phone'
 import {
@@ -42,12 +43,21 @@ export type DuplicatePhoneStudent = {
 
 export type DuplicatePhoneResult =
   | { ok: true; isDuplicate: false }
-  | { ok: true; isDuplicate: true; existingStudent: DuplicatePhoneStudent }
+  | {
+      ok: true
+      isDuplicate: true
+      /** Stage 2-A 最小揭露:consultant 呼叫時 RPC 不回傳對方身分,此欄為
+       *  null,改由 `message` 帶固定訊息。manager/admin 才會拿到完整資料。 */
+      existingStudent: DuplicatePhoneStudent | null
+      /** consultant 收到的固定訊息(「此聯繫方式已存在,請聯繫管理員或主管」)。 */
+      message?: string
+    }
   | { ok: false; error: string }
 
 /** v duplicate-prevention §2A — query the SD function find_duplicate_student_
- *  by_phone (migration 0038). Returns at most one match. Server-only so we
- *  can normalise the phone server-side and bypass RLS via SECURITY DEFINER. */
+ *  by_phone (0038, role-aware since 0045). Server-only so we can normalise the
+ *  phone server-side; the RPC bypasses RLS via SECURITY DEFINER but, since
+ *  0045, withholds the matched student's identity from consultant callers. */
 export async function checkPhoneDuplicate(phone: string): Promise<DuplicatePhoneResult> {
   // phone-normalize §1.4: normalize before lookup so 0912-345-678 /
   // +886912345678 / 0912345678 all hit the same canonical row.
@@ -55,22 +65,29 @@ export async function checkPhoneDuplicate(phone: string): Promise<DuplicatePhone
   if (normalized.length < 8) return { ok: true, isDuplicate: false }
 
   const supabase = createClient()
-  const { data, error } = await supabase.rpc(
-    'find_duplicate_student_by_phone' as never,
-    { p_phone: normalized } as never,
-  )
+  const { data, error } = await supabase.rpc('find_duplicate_student_by_phone', {
+    p_phone: normalized,
+  })
   if (error) {
     return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
   }
-  const rows = (data ?? []) as unknown as DuplicatePhoneStudent[]
-  if (rows.length === 0) return { ok: true, isDuplicate: false }
-  return { ok: true, isDuplicate: true, existingStudent: rows[0] }
+  // 0045 — RPC 回傳 JSONB 物件 { is_duplicate, matches, message? }。
+  // consultant:matches 為 []、message 帶固定訊息;manager/admin:matches 有 1 筆。
+  const res = (data ?? {}) as unknown as {
+    is_duplicate?: boolean
+    matches?: DuplicatePhoneStudent[]
+    message?: string
+  }
+  if (!res.is_duplicate) return { ok: true, isDuplicate: false }
+  const existingStudent = res.matches && res.matches.length > 0 ? res.matches[0] : null
+  return { ok: true, isDuplicate: true, existingStudent, message: res.message }
 }
 
-/** Override info passed from the form when the consultant has eyeballed the
- *  inline duplicate warning and clicked「確認為不同學生,繼續建立」. The
- *  action will write an activity_log entry tagged
- *  action='duplicate_phone_override' so 主管 (§4) can review. */
+/** Override info passed from the form when a manager/admin has eyeballed the
+ *  inline duplicate warning and clicked「確認為不同學生,繼續建立」. Stage 2-A
+ *  任務三(i):consultant 不可覆寫 — createStudent 會忽略非 manager/admin 帶進來
+ *  的 override。被採信時寫入 activity_log(action='duplicate_phone_override')供
+ *  §4 主管審查。 */
 export type DuplicateOverride = {
   duplicateOfStudentId: string
   phone: string
@@ -87,12 +104,19 @@ export type ContactPhoneMatch = {
 
 export type ContactPhoneDuplicateResult =
   | { ok: true; isDuplicate: false }
-  | { ok: true; isDuplicate: true; matches: ContactPhoneMatch[] }
+  | {
+      ok: true
+      isDuplicate: true
+      /** Stage 2-A 最小揭露:consultant 呼叫時為 []，改由 `message` 帶固定訊息。 */
+      matches: ContactPhoneMatch[]
+      message?: string
+    }
   | { ok: false; error: string }
 
 /** phone-normalize §3 — scan both `students.phone` and `student_contacts.phone`
- *  for the supplied number. Used by the 代填人 (contact) phone input on the
- *  new-student form so the warning explicitly mentions either case. */
+ *  for the supplied number (find_phone_anywhere, 0041; role-aware since 0045).
+ *  Used by the 代填人 (contact) phone input on the new-student form. Since 0045
+ *  the RPC withholds matched identities from consultant callers. */
 export async function checkContactPhoneDuplicate(
   phone: string,
 ): Promise<ContactPhoneDuplicateResult> {
@@ -100,16 +124,18 @@ export async function checkContactPhoneDuplicate(
   if (normalized.length < 8) return { ok: true, isDuplicate: false }
 
   const supabase = createClient()
-  const { data, error } = await supabase.rpc(
-    'find_phone_anywhere' as never,
-    { p_phone: normalized } as never,
-  )
+  const { data, error } = await supabase.rpc('find_phone_anywhere', { p_phone: normalized })
   if (error) {
     return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
   }
-  const matches = (data ?? []) as unknown as ContactPhoneMatch[]
-  if (matches.length === 0) return { ok: true, isDuplicate: false }
-  return { ok: true, isDuplicate: true, matches }
+  // 0045 — RPC 回傳 JSONB 物件 { is_duplicate, matches, message? }。
+  const res = (data ?? {}) as unknown as {
+    is_duplicate?: boolean
+    matches?: ContactPhoneMatch[]
+    message?: string
+  }
+  if (!res.is_duplicate) return { ok: true, isDuplicate: false }
+  return { ok: true, isDuplicate: true, matches: res.matches ?? [], message: res.message }
 }
 
 function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]> {
@@ -137,6 +163,19 @@ export async function createStudent(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: '未登入' }
+
+  // Stage 2-A 任務三(i)— 取呼叫者角色。只有 manager/admin 可覆寫重複名單;
+  // consultant 一律不可自助覆寫,即使前端被繞過、偽造 duplicateOverride。
+  // fail-closed:查不到 profile/role → 視為無覆寫權(canOverride = false)。
+  const { data: me } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  const role = (me as { role?: UserRole } | null)?.role ?? null
+  const canOverride = role ? isManagerOrAdmin(role) : false
+  // 非 manager/admin 帶進來的 override 不予採信 → 降級為 null,強制走查重。
+  const effectiveOverride = canOverride ? (duplicateOverride ?? null) : null
 
   // Migration 0026 dropped the enum default and made status_id NOT NULL.
   // Look up 'new_lead' (the historical default) and fall back to the
@@ -172,18 +211,29 @@ export async function createStudent(
   const normalizedPhone = normalizePhone(dbPayload.phone)
   const phoneToStore = normalizedPhone === '' ? null : normalizedPhone
 
-  // duplicate-prevention §2A — app-level 重複偵測,只在沒有 duplicateOverride
-  // 時才擋。前端的「確認為不同學生,繼續建立」會帶 override 進來,讓這位
-  // 顧問跳過此檢查直接建立。0037 那個 DB-level UNIQUE 已在 0044 移除,所以
-  // 這裡是唯一的擋點(以前是 DB UNIQUE 擋著 → 即使 override=true 也炸)。
-  if (!duplicateOverride && phoneToStore) {
+  // duplicate-prevention §2A + Stage 2-A 任務三(i) — app-level 重複偵測。
+  // 只有 manager/admin 的覆寫(effectiveOverride)能跳過此擋點;consultant 帶
+  // 的 override 已被降級為 null → 一律走查重並擋下(伺服器端縱深防禦,不可
+  // 只靠前端隱藏按鈕)。0037 的 DB-level UNIQUE 已在 0044 移除,這裡是唯一擋點。
+  if (!effectiveOverride && phoneToStore) {
     const dup = await checkPhoneDuplicate(phoneToStore)
-    if (dup.ok && dup.isDuplicate) {
+    // Fail-closed — 0044 移除 phone UNIQUE 後,此查重是唯一安全網。若 RPC 查詢
+    // 失敗(未部署 / PostgREST schema 未 reload / 連線瞬斷),不可放行,否則會
+    // 靜默建立重複名單;一律擋下並請使用者稍後再試。
+    if (!dup.ok) {
+      return { ok: false, error: '重複檢查暫時無法執行,請稍後再試。' }
+    }
+    if (dup.isDuplicate) {
+      // 最小揭露:consultant 用通用語、不透露對方身分;manager/admin 維持原
+      // 訊息(他們本就能看到完整重複資訊)。兩者皆不含可識別個資。
+      const dupMsg = canOverride
+        ? '此手機號碼已有學生名單存在,請先搜尋現有名單。'
+        : '此聯繫方式已存在,請聯繫管理員或主管。'
       return {
         ok: false,
-        error: '此手機號碼已有學生名單存在,請先搜尋現有名單。',
+        error: dupMsg,
         code: 'DUPLICATE_PHONE',
-        fieldErrors: { phone: ['此手機號碼已有學生名單存在'] },
+        fieldErrors: { phone: [dupMsg] },
       }
     }
   }
@@ -222,10 +272,10 @@ export async function createStudent(
     entity_id: data.id,
   })
 
-  // duplicate-prevention §2A — when the consultant explicitly chose to
-  // continue past an inline warning, log it so 主管 widget (§4) can review.
-  // Best-effort (non-fatal) for the same reason as student_created above.
-  if (duplicateOverride) {
+  // duplicate-prevention §2A + Stage 2-A 任務三(i) — 只有 manager/admin 能覆寫,
+  // 故只在 effectiveOverride 存在時記錄,供 §4 主管 widget /「重複名單覆蓋紀錄」
+  // 頁審查。Best-effort(非致命),理由同上方 student_created。
+  if (effectiveOverride) {
     await supabase.from('activity_log').insert({
       student_id: data.id,
       actor_id: user.id,
@@ -233,11 +283,13 @@ export async function createStudent(
       entity_type: 'student',
       entity_id: data.id,
       payload: {
-        duplicate_of_student_id: duplicateOverride.duplicateOfStudentId,
+        duplicate_of_student_id: effectiveOverride.duplicateOfStudentId,
         // Log the canonical phone so the 主管 widget shows the same value
-        // regardless of how the consultant typed it.
-        phone: normalizePhone(duplicateOverride.phone) || duplicateOverride.phone,
-        reason: 'confirmed_different_by_consultant',
+        // regardless of how the user typed it.
+        phone: normalizePhone(effectiveOverride.phone) || effectiveOverride.phone,
+        // 記錄核可者角色,供主管審查「誰以什麼權限覆寫」。
+        reason: 'confirmed_different_by_manager_or_admin',
+        overridden_by_role: role,
       },
     })
   }

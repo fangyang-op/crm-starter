@@ -18,6 +18,7 @@ export type Database = {
           is_official: boolean
           notes: string | null
           score_type: Database['public']['Enums']['score_type']
+          status: string
           student_id: string
           sub_scores: Json | null
           test_date: string | null
@@ -32,6 +33,7 @@ export type Database = {
           is_official?: boolean
           notes?: string | null
           score_type: Database['public']['Enums']['score_type']
+          status?: string
           student_id: string
           sub_scores?: Json | null
           test_date?: string | null
@@ -46,6 +48,7 @@ export type Database = {
           is_official?: boolean
           notes?: string | null
           score_type?: Database['public']['Enums']['score_type']
+          status?: string
           student_id?: string
           sub_scores?: Json | null
           test_date?: string | null
@@ -149,6 +152,60 @@ export type Database = {
         }
         Relationships: []
       }
+      application_scholarships: {
+        Row: {
+          amount_twd: number | null
+          application_id: string
+          award_letter_path: string | null
+          created_at: string
+          created_by: string | null
+          has_scholarship: boolean
+          id: string
+          notes: string | null
+          scholarship_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_twd?: number | null
+          application_id: string
+          award_letter_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          has_scholarship?: boolean
+          id?: string
+          notes?: string | null
+          scholarship_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_twd?: number | null
+          application_id?: string
+          award_letter_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          has_scholarship?: boolean
+          id?: string
+          notes?: string | null
+          scholarship_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'application_scholarships_application_id_fkey'
+            columns: ['application_id']
+            isOneToOne: false
+            referencedRelation: 'applications'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'application_scholarships_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       applications: {
         Row: {
           application_fee: number | null
@@ -160,17 +217,21 @@ export type Database = {
           decision_notes: string | null
           id: string
           notes: string | null
+          offer_letter_path: string | null
           portal_notes: string | null
           portal_password_encrypted: string | null
           portal_url: string | null
           portal_username: string | null
           program_id: string | null
           program_name_override: string | null
+          rejection_letter_path: string | null
           school_id: string
           source_school_list_item_id: string | null
           status: Database['public']['Enums']['application_status']
           student_id: string
           submitted_at: string | null
+          tuition_amount: number | null
+          tuition_currency: string
           updated_at: string
         }
         Insert: {
@@ -183,17 +244,21 @@ export type Database = {
           decision_notes?: string | null
           id?: string
           notes?: string | null
+          offer_letter_path?: string | null
           portal_notes?: string | null
           portal_password_encrypted?: string | null
           portal_url?: string | null
           portal_username?: string | null
           program_id?: string | null
           program_name_override?: string | null
+          rejection_letter_path?: string | null
           school_id: string
           source_school_list_item_id?: string | null
           status?: Database['public']['Enums']['application_status']
           student_id: string
           submitted_at?: string | null
+          tuition_amount?: number | null
+          tuition_currency?: string
           updated_at?: string
         }
         Update: {
@@ -206,17 +271,21 @@ export type Database = {
           decision_notes?: string | null
           id?: string
           notes?: string | null
+          offer_letter_path?: string | null
           portal_notes?: string | null
           portal_password_encrypted?: string | null
           portal_url?: string | null
           portal_username?: string | null
           program_id?: string | null
           program_name_override?: string | null
+          rejection_letter_path?: string | null
           school_id?: string
           source_school_list_item_id?: string | null
           status?: Database['public']['Enums']['application_status']
           student_id?: string
           submitted_at?: string | null
+          tuition_amount?: number | null
+          tuition_currency?: string
           updated_at?: string
         }
         Relationships: [
@@ -525,6 +594,48 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          default_required: boolean
+          description: string | null
+          id: string
+          is_active: boolean
+          label_zh: string
+          notes: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          default_required?: boolean
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label_zh: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          default_required?: boolean
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label_zh?: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents_master: {
         Row: {
           created_at: string
@@ -766,10 +877,88 @@ export type Database = {
           },
         ]
       }
+      lead_source_referrers: {
+        Row: {
+          created_at: string
+          lead_source_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          lead_source_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          lead_source_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'lead_source_referrers_lead_source_id_fkey'
+            columns: ['lead_source_id']
+            isOneToOne: false
+            referencedRelation: 'lead_sources'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'lead_source_referrers_referrer_id_fkey'
+            columns: ['referrer_id']
+            isOneToOne: false
+            referencedRelation: 'referrers'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      lead_sources: {
+        Row: {
+          code: string
+          created_at: string
+          default_referrer_id: string | null
+          detail_field: string
+          id: string
+          is_active: boolean
+          label_zh: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_referrer_id?: string | null
+          detail_field?: string
+          id?: string
+          is_active?: boolean
+          label_zh: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_referrer_id?: string | null
+          detail_field?: string
+          id?: string
+          is_active?: boolean
+          label_zh?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'lead_sources_default_referrer_id_fkey'
+            columns: ['default_referrer_id']
+            isOneToOne: false
+            referencedRelation: 'referrers'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
+          created_by: string | null
           department: Database['public']['Enums']['department'] | null
           display_name: string | null
           email: string
@@ -782,6 +971,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          created_by?: string | null
           department?: Database['public']['Enums']['department'] | null
           display_name?: string | null
           email: string
@@ -794,6 +984,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          created_by?: string | null
           department?: Database['public']['Enums']['department'] | null
           display_name?: string | null
           email?: string
@@ -803,13 +994,22 @@ export type Database = {
           role?: Database['public']['Enums']['user_role']
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
       }
       referrers: {
         Row: {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          default_split_percent: number | null
           id: string
           is_active: boolean
           name: string
@@ -821,6 +1021,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          default_split_percent?: number | null
           id?: string
           is_active?: boolean
           name: string
@@ -832,6 +1033,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          default_split_percent?: number | null
           id?: string
           is_active?: boolean
           name?: string
@@ -1105,33 +1307,285 @@ export type Database = {
         }
         Relationships: []
       }
+      student_contacts: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          is_primary_contact: boolean
+          line_id: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          relation: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          is_primary_contact?: boolean
+          line_id?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          relation: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          is_primary_contact?: boolean
+          line_id?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          relation?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'student_contacts_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_contacts_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'students'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      student_credentials: {
+        Row: {
+          account: string | null
+          application_id: string | null
+          created_at: string
+          created_by: string | null
+          credential_type: string
+          id: string
+          label: string
+          notes: string | null
+          password_encrypted: string | null
+          student_id: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          account?: string | null
+          application_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credential_type: string
+          id?: string
+          label: string
+          notes?: string | null
+          password_encrypted?: string | null
+          student_id: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          account?: string | null
+          application_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credential_type?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          password_encrypted?: string | null
+          student_id?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'student_credentials_application_id_fkey'
+            columns: ['application_id']
+            isOneToOne: false
+            referencedRelation: 'applications'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_credentials_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_credentials_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'students'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      student_defers: {
+        Row: {
+          agreement_file_path: string
+          created_at: string
+          created_by: string | null
+          id: string
+          new_enrollment_date: string
+          original_enrollment_date: string | null
+          reason: string | null
+          student_id: string
+        }
+        Insert: {
+          agreement_file_path: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_enrollment_date: string
+          original_enrollment_date?: string | null
+          reason?: string | null
+          student_id: string
+        }
+        Update: {
+          agreement_file_path?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          new_enrollment_date?: string
+          original_enrollment_date?: string | null
+          reason?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'student_defers_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_defers_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'students'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      student_required_documents: {
+        Row: {
+          created_at: string
+          document_template_id: string
+          file_path: string | null
+          id: string
+          is_required: boolean
+          notes: string | null
+          status: string
+          student_id: string
+          updated_at: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_template_id: string
+          file_path?: string | null
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_template_id?: string
+          file_path?: string | null
+          id?: string
+          is_required?: boolean
+          notes?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'student_required_documents_document_template_id_fkey'
+            columns: ['document_template_id']
+            isOneToOne: false
+            referencedRelation: 'document_templates'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_required_documents_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'students'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_required_documents_uploaded_by_fkey'
+            columns: ['uploaded_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'student_required_documents_verified_by_fkey'
+            columns: ['verified_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       student_status_history: {
         Row: {
           changed_at: string
           changed_by: string | null
-          from_status: Database['public']['Enums']['student_status'] | null
+          from_status_id: string | null
           id: string
           note: string | null
           student_id: string
-          to_status: Database['public']['Enums']['student_status']
+          to_status_id: string
         }
         Insert: {
           changed_at?: string
           changed_by?: string | null
-          from_status?: Database['public']['Enums']['student_status'] | null
+          from_status_id?: string | null
           id?: string
           note?: string | null
           student_id: string
-          to_status: Database['public']['Enums']['student_status']
+          to_status_id: string
         }
         Update: {
           changed_at?: string
           changed_by?: string | null
-          from_status?: Database['public']['Enums']['student_status'] | null
+          from_status_id?: string | null
           id?: string
           note?: string | null
           student_id?: string
-          to_status?: Database['public']['Enums']['student_status']
+          to_status_id?: string
         }
         Relationships: [
           {
@@ -1142,13 +1596,63 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'student_status_history_from_status_id_fkey'
+            columns: ['from_status_id']
+            isOneToOne: false
+            referencedRelation: 'student_statuses'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'student_status_history_student_id_fkey'
             columns: ['student_id']
             isOneToOne: false
             referencedRelation: 'students'
             referencedColumns: ['id']
           },
+          {
+            foreignKeyName: 'student_status_history_to_status_id_fkey'
+            columns: ['to_status_id']
+            isOneToOne: false
+            referencedRelation: 'student_statuses'
+            referencedColumns: ['id']
+          },
         ]
+      }
+      student_statuses: {
+        Row: {
+          category: string
+          code: string
+          color_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label_zh: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          color_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label_zh: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          color_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label_zh?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       students: {
         Row: {
@@ -1166,14 +1670,14 @@ export type Database = {
           full_name: string
           graduation_year: number | null
           id: string
+          lead_source_id: string
           lead_source_note: string | null
           lead_source_referrer_id: string | null
-          lead_source_type: Database['public']['Enums']['lead_source_type']
           lead_source_user_id: string | null
           line_id: string | null
           notes: string | null
           phone: string | null
-          status: Database['public']['Enums']['student_status']
+          status_id: string
           tags: string[] | null
           target_country: string[] | null
           target_degree: string | null
@@ -1196,14 +1700,14 @@ export type Database = {
           full_name: string
           graduation_year?: number | null
           id?: string
+          lead_source_id: string
           lead_source_note?: string | null
           lead_source_referrer_id?: string | null
-          lead_source_type?: Database['public']['Enums']['lead_source_type']
           lead_source_user_id?: string | null
           line_id?: string | null
           notes?: string | null
           phone?: string | null
-          status?: Database['public']['Enums']['student_status']
+          status_id: string
           tags?: string[] | null
           target_country?: string[] | null
           target_degree?: string | null
@@ -1226,14 +1730,14 @@ export type Database = {
           full_name?: string
           graduation_year?: number | null
           id?: string
+          lead_source_id?: string
           lead_source_note?: string | null
           lead_source_referrer_id?: string | null
-          lead_source_type?: Database['public']['Enums']['lead_source_type']
           lead_source_user_id?: string | null
           line_id?: string | null
           notes?: string | null
           phone?: string | null
-          status?: Database['public']['Enums']['student_status']
+          status_id?: string
           tags?: string[] | null
           target_country?: string[] | null
           target_degree?: string | null
@@ -1264,6 +1768,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'students_lead_source_id_fkey'
+            columns: ['lead_source_id']
+            isOneToOne: false
+            referencedRelation: 'lead_sources'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'students_lead_source_referrer_id_fkey'
             columns: ['lead_source_referrer_id']
             isOneToOne: false
@@ -1273,6 +1784,135 @@ export type Database = {
           {
             foreignKeyName: 'students_lead_source_user_id_fkey'
             columns: ['lead_source_user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'students_status_id_fkey'
+            columns: ['status_id']
+            isOneToOne: false
+            referencedRelation: 'student_statuses'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      uat_chapters: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          target_roles: string[]
+          title_zh: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          target_roles?: string[]
+          title_zh: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          target_roles?: string[]
+          title_zh?: string
+        }
+        Relationships: []
+      }
+      uat_items: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          expected_result: string
+          id: string
+          is_active: boolean
+          item_code: string
+          sort_order: number
+          step_description: string
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          expected_result: string
+          id?: string
+          is_active?: boolean
+          item_code: string
+          sort_order?: number
+          step_description: string
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          expected_result?: string
+          id?: string
+          is_active?: boolean
+          item_code?: string
+          sort_order?: number
+          step_description?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'uat_items_chapter_id_fkey'
+            columns: ['chapter_id']
+            isOneToOne: false
+            referencedRelation: 'uat_chapters'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      uat_results: {
+        Row: {
+          id: string
+          item_id: string
+          note: string | null
+          result: string
+          screenshot_path: string | null
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          note?: string | null
+          result: string
+          screenshot_path?: string | null
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          note?: string | null
+          result?: string
+          screenshot_path?: string | null
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'uat_results_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'uat_items'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'uat_results_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
@@ -1362,15 +2002,541 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _admin_user_authorize: { Args: never; Returns: undefined }
+      _app_authorize: { Args: { p_student_id: string }; Returns: undefined }
+      _commission_authorize: { Args: never; Returns: undefined }
+      _dm_authorize: { Args: { p_student_id: string }; Returns: undefined }
+      _lead_source_authorize: { Args: never; Returns: undefined }
+      _score_authorize: { Args: { p_student_id: string }; Returns: undefined }
+      _score_authorize_edit: {
+        Args: { p_student_id: string }
+        Returns: undefined
+      }
+      _sl_authorize: { Args: { p_student_id: string }; Returns: undefined }
+      _srd_authorize: { Args: { p_student_id: string }; Returns: undefined }
+      _student_credentials_authorize: {
+        Args: { p_student_id: string }
+        Returns: undefined
+      }
+      _student_status_authorize: { Args: never; Returns: undefined }
+      add_school_list_item: {
+        Args: {
+          p_list_id: string
+          p_notes: string
+          p_program_id: string
+          p_program_name_override: string
+          p_school_id: string
+          p_tier: string
+        }
+        Returns: string
+      }
+      add_word_quota_bonus: {
+        Args: { p_amount: number; p_description: string; p_student_id: string }
+        Returns: string
+      }
+      admin_create_user_profile: {
+        Args: {
+          p_department: string
+          p_display_name: string
+          p_email: string
+          p_full_name: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_user_active: {
+        Args: { p_is_active: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      admin_update_user_profile: {
+        Args: {
+          p_department: string
+          p_display_name: string
+          p_full_name: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      change_student_status: {
+        Args: { p_id: string; p_new_status_id: string; p_note?: string }
+        Returns: undefined
+      }
+      create_academic_score: {
+        Args: {
+          p_certificate_storage_path: string
+          p_expiry_date: string
+          p_is_official: boolean
+          p_notes: string
+          p_score_type: string
+          p_student_id: string
+          p_sub_scores: Json
+          p_test_date: string
+          p_total_score: string
+        }
+        Returns: string
+      }
+      create_deal: {
+        Args: {
+          p_contract_no: string
+          p_discount_amount: number
+          p_discount_reason: string
+          p_extra_school_count: number
+          p_extra_word_quota: number
+          p_notes: string
+          p_payment_status: string
+          p_plan_id: string
+          p_signed_at: string
+          p_splits: Json
+          p_student_id: string
+        }
+        Returns: string
+      }
+      create_documents_master: {
+        Args: {
+          p_description: string
+          p_doc_type: string
+          p_student_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      create_documents_master_version: {
+        Args: {
+          p_change_note: string
+          p_content: string
+          p_master_id: string
+          p_word_count: number
+          p_word_diff_from_previous: number
+        }
+        Returns: string
+      }
+      create_documents_variant_version: {
+        Args: {
+          p_change_note: string
+          p_content: string
+          p_variant_id: string
+          p_word_count: number
+          p_word_diff_from_previous: number
+        }
+        Returns: string
+      }
+      create_lead_source:
+        | {
+            Args: {
+              p_code: string
+              p_default_referrer_id: string
+              p_label_zh: string
+              p_sort_order: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_code: string
+              p_default_referrer_id: string
+              p_detail_field: string
+              p_label_zh: string
+              p_sort_order: number
+            }
+            Returns: string
+          }
+      create_preliminary_score: {
+        Args: {
+          p_score_type: string
+          p_student_id: string
+          p_sub_scores: Json
+          p_total_score: string
+        }
+        Returns: string
+      }
+      create_referrer:
+        | {
+            Args: {
+              p_contact_email?: string
+              p_contact_phone?: string
+              p_name: string
+              p_notes?: string
+              p_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_contact_email: string
+              p_contact_phone: string
+              p_default_split_percent: number
+              p_name: string
+              p_notes: string
+              p_type: string
+            }
+            Returns: string
+          }
+      create_school: {
+        Args: {
+          p_city: string
+          p_country: string
+          p_is_active: boolean
+          p_is_partner: boolean
+          p_name_en: string
+          p_name_zh: string
+          p_partner_commission_rate: number
+          p_partner_notes: string
+          p_ranking_qs: number
+          p_ranking_us_news: number
+          p_short_name: string
+          p_state_or_region: string
+          p_website: string
+        }
+        Returns: string
+      }
+      create_school_list: {
+        Args: {
+          p_copy_from_list_id?: string
+          p_name: string
+          p_student_id: string
+        }
+        Returns: string
+      }
+      create_school_program: {
+        Args: {
+          p_application_deadline_round1: string
+          p_application_deadline_round2: string
+          p_degree_level: string
+          p_major_category: string
+          p_notes: string
+          p_program_name: string
+          p_school_id: string
+        }
+        Returns: string
+      }
+      create_service_plan: {
+        Args: {
+          p_base_price: number
+          p_code: string
+          p_currency: string
+          p_description: string
+          p_display_order: number
+          p_included_school_count: number
+          p_included_word_quota: number
+          p_is_active: boolean
+          p_name: string
+          p_scope_country: string[]
+          p_scope_degree: string[]
+        }
+        Returns: string
+      }
+      create_student_credential: {
+        Args: {
+          p_account: string
+          p_credential_type: string
+          p_label: string
+          p_notes: string
+          p_password_encrypted: string
+          p_student_id: string
+          p_url: string
+        }
+        Returns: string
+      }
+      create_student_defer: {
+        Args: {
+          p_agreement_file_path: string
+          p_new_enrollment_date: string
+          p_original_enrollment_date: string
+          p_reason: string
+          p_student_id: string
+        }
+        Returns: string
+      }
+      create_student_status: {
+        Args: {
+          p_category: string
+          p_code: string
+          p_color_key: string
+          p_label_zh: string
+          p_sort_order: number
+        }
+        Returns: string
+      }
       current_user_role: {
         Args: never
         Returns: Database['public']['Enums']['user_role']
+      }
+      delete_academic_score: { Args: { p_id: string }; Returns: string }
+      delete_student_credential: { Args: { p_id: string }; Returns: undefined }
+      expand_school_list_to_applications: {
+        Args: { p_list_id: string }
+        Returns: Json
+      }
+      find_duplicate_student_by_phone: {
+        Args: { p_phone: string }
+        Returns: Json
+      }
+      find_phone_anywhere: { Args: { p_phone: string }; Returns: Json }
+      fork_documents_variant: {
+        Args: {
+          p_application_id: string
+          p_master_id: string
+          p_source_master_version_id: string
+        }
+        Returns: string
       }
       is_admin: { Args: never; Returns: boolean }
       is_manager_or_admin: { Args: never; Returns: boolean }
       is_student_consultant: {
         Args: { p_student_id: string }
         Returns: boolean
+      }
+      lock_school_list: { Args: { p_id: string }; Returns: undefined }
+      remove_school_list_item: { Args: { p_id: string }; Returns: undefined }
+      set_application_decision_file: {
+        Args: { p_application_id: string; p_kind: string; p_path: string }
+        Returns: undefined
+      }
+      set_current_school_list: { Args: { p_id: string }; Returns: undefined }
+      set_required_document_file: {
+        Args: {
+          p_file_path: string
+          p_student_id: string
+          p_template_id: string
+        }
+        Returns: string
+      }
+      set_required_document_status: {
+        Args: { p_id: string; p_notes: string; p_status: string }
+        Returns: undefined
+      }
+      soft_delete_student: { Args: { p_id: string }; Returns: undefined }
+      toggle_required_document: {
+        Args: {
+          p_is_required: boolean
+          p_student_id: string
+          p_template_id: string
+        }
+        Returns: string
+      }
+      update_academic_score: {
+        Args: {
+          p_certificate_storage_path: string
+          p_expiry_date: string
+          p_id: string
+          p_is_official: boolean
+          p_notes: string
+          p_score_type: string
+          p_sub_scores: Json
+          p_test_date: string
+          p_total_score: string
+        }
+        Returns: undefined
+      }
+      update_application_meta: {
+        Args: {
+          p_application_fee: number
+          p_application_fee_paid: boolean
+          p_application_round: string
+          p_deadline: string
+          p_decision_notes: string
+          p_id: string
+          p_notes: string
+        }
+        Returns: undefined
+      }
+      update_application_portal: {
+        Args: {
+          p_id: string
+          p_portal_notes: string
+          p_portal_password_encrypted: string
+          p_portal_url: string
+          p_portal_username: string
+          p_set_password: boolean
+        }
+        Returns: undefined
+      }
+      update_application_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      update_application_tuition: {
+        Args: {
+          p_application_id: string
+          p_tuition_amount: number
+          p_tuition_currency: string
+        }
+        Returns: undefined
+      }
+      update_commission: {
+        Args: {
+          p_actual_amount: number
+          p_id: string
+          p_invoiced_at: string
+          p_notes: string
+          p_received_at: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      update_deal: {
+        Args: {
+          p_contract_no: string
+          p_discount_amount: number
+          p_discount_reason: string
+          p_extra_school_count: number
+          p_extra_word_quota: number
+          p_id: string
+          p_notes: string
+          p_payment_status: string
+          p_plan_id: string
+          p_signed_at: string
+          p_splits: Json
+        }
+        Returns: undefined
+      }
+      update_lead_source:
+        | {
+            Args: {
+              p_code: string
+              p_default_referrer_id: string
+              p_id: string
+              p_is_active: boolean
+              p_label_zh: string
+              p_sort_order: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_code: string
+              p_default_referrer_id: string
+              p_detail_field: string
+              p_id: string
+              p_is_active: boolean
+              p_label_zh: string
+              p_sort_order: number
+            }
+            Returns: undefined
+          }
+      update_referrer:
+        | {
+            Args: {
+              p_contact_email?: string
+              p_contact_phone?: string
+              p_id: string
+              p_is_active?: boolean
+              p_name: string
+              p_notes?: string
+              p_type: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_contact_email: string
+              p_contact_phone: string
+              p_default_split_percent: number
+              p_id: string
+              p_is_active: boolean
+              p_name: string
+              p_notes: string
+              p_type: string
+            }
+            Returns: undefined
+          }
+      update_school: {
+        Args: {
+          p_city: string
+          p_country: string
+          p_id: string
+          p_is_active: boolean
+          p_is_partner: boolean
+          p_name_en: string
+          p_name_zh: string
+          p_partner_commission_rate: number
+          p_partner_notes: string
+          p_ranking_qs: number
+          p_ranking_us_news: number
+          p_short_name: string
+          p_state_or_region: string
+          p_website: string
+        }
+        Returns: undefined
+      }
+      update_school_list_item: {
+        Args: {
+          p_display_order: number
+          p_id: string
+          p_notes: string
+          p_tier: string
+        }
+        Returns: undefined
+      }
+      update_school_program: {
+        Args: {
+          p_application_deadline_round1: string
+          p_application_deadline_round2: string
+          p_degree_level: string
+          p_id: string
+          p_major_category: string
+          p_notes: string
+          p_program_name: string
+        }
+        Returns: undefined
+      }
+      update_service_plan: {
+        Args: {
+          p_base_price: number
+          p_code: string
+          p_currency: string
+          p_description: string
+          p_display_order: number
+          p_id: string
+          p_included_school_count: number
+          p_included_word_quota: number
+          p_is_active: boolean
+          p_name: string
+          p_scope_country: string[]
+          p_scope_degree: string[]
+        }
+        Returns: undefined
+      }
+      update_student: {
+        Args: { p_data: Json; p_id: string }
+        Returns: undefined
+      }
+      update_student_credential: {
+        Args: {
+          p_account: string
+          p_id: string
+          p_label: string
+          p_notes: string
+          p_password_encrypted: string
+          p_set_password: boolean
+          p_url: string
+        }
+        Returns: undefined
+      }
+      update_student_status: {
+        Args: {
+          p_category: string
+          p_code: string
+          p_color_key: string
+          p_id: string
+          p_is_active: boolean
+          p_label_zh: string
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
+      upsert_application_scholarship: {
+        Args: {
+          p_amount_twd: number
+          p_application_id: string
+          p_award_letter_path: string
+          p_has_scholarship: boolean
+          p_notes: string
+          p_scholarship_name: string
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -1384,33 +2550,9 @@ export type Database = {
         | 'waitlisted'
         | 'declined_by_us'
         | 'enrolled'
-      department: 'frontend' | 'backend'
+      department: 'frontend' | 'backend' | 'operations'
       document_type: 'cv' | 'sop' | 'lor' | 'transcript' | 'other'
-      lead_source_type:
-        | 'self_developed'
-        | 'marketing_dept'
-        | 'consultant_referral'
-        | 'external_referrer'
-        | 'brand_introduction'
-        | 'other'
       score_type: 'gpa' | 'toefl' | 'ielts' | 'gre' | 'gmat' | 'sat' | 'duolingo' | 'other'
-      student_status:
-        | 'new_lead'
-        | 'contacted'
-        | 'consulting'
-        | 'qualified'
-        | 'disqualified'
-        | 'closed_won'
-        | 'onboarding'
-        | 'school_selection'
-        | 'document_prep'
-        | 'submitting'
-        | 'awaiting_decision'
-        | 'decision_making'
-        | 'pre_departure'
-        | 'enrolled'
-        | 'paused'
-        | 'terminated'
       user_role: 'consultant' | 'manager_frontend' | 'manager_backend' | 'admin'
       word_quota_transaction_type: 'initial' | 'addon' | 'bonus' | 'used' | 'refund' | 'adjustment'
     }
@@ -1549,35 +2691,9 @@ export const Constants = {
         'declined_by_us',
         'enrolled',
       ],
-      department: ['frontend', 'backend'],
+      department: ['frontend', 'backend', 'operations'],
       document_type: ['cv', 'sop', 'lor', 'transcript', 'other'],
-      lead_source_type: [
-        'self_developed',
-        'marketing_dept',
-        'consultant_referral',
-        'external_referrer',
-        'brand_introduction',
-        'other',
-      ],
       score_type: ['gpa', 'toefl', 'ielts', 'gre', 'gmat', 'sat', 'duolingo', 'other'],
-      student_status: [
-        'new_lead',
-        'contacted',
-        'consulting',
-        'qualified',
-        'disqualified',
-        'closed_won',
-        'onboarding',
-        'school_selection',
-        'document_prep',
-        'submitting',
-        'awaiting_decision',
-        'decision_making',
-        'pre_departure',
-        'enrolled',
-        'paused',
-        'terminated',
-      ],
       user_role: ['consultant', 'manager_frontend', 'manager_backend', 'admin'],
       word_quota_transaction_type: ['initial', 'addon', 'bonus', 'used', 'refund', 'adjustment'],
     },

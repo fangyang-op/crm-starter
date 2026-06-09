@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
+import { sniffUploadedFile } from '@/lib/utils/file-validation'
 
 const SCREENSHOT_BUCKET = 'uat-screenshots'
 
@@ -66,12 +67,16 @@ export async function uploadUatScreenshot(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: '請選擇檔案' }
   }
-  if (file.size > 5 * 1024 * 1024) {
-    return { ok: false, error: '檔案不能超過 5MB' }
-  }
-  if (!file.type.startsWith('image/')) {
+  // 便宜的第一道關卡:client 宣告的 MIME(可偽造,僅快速擋明顯非圖片)。
+  if (file.type && !file.type.startsWith('image/')) {
     return { ok: false, error: '請上傳圖片格式' }
   }
+  // 最終權威:內容嗅探(magic number)+ 大小上限。允許 PNG / JPEG / WebP。
+  const sniff = await sniffUploadedFile(file, {
+    allowed: ['png', 'jpeg', 'webp'],
+    maxBytes: 5 * 1024 * 1024,
+  })
+  if (!sniff.ok) return { ok: false, error: sniff.error }
 
   const supabase = createClient()
   const {
@@ -81,12 +86,13 @@ export async function uploadUatScreenshot(
 
   // path: <user_id>/<item_id>-<timestamp>.<ext> — bucket policy 預期
   // 第一段 = auth.uid() 才允許 INSERT。
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+  // 用嗅探到的真實副檔名 / mime,不信任 client 宣告。
+  const ext = sniff.ext
   const ts = new Date().toISOString().replace(/[:.]/g, '-')
   const path = `${user.id}/${itemId}-${ts}.${ext}`
 
   const { error: upErr } = await supabase.storage.from(SCREENSHOT_BUCKET).upload(path, file, {
-    contentType: file.type,
+    contentType: sniff.mime,
     upsert: false,
   })
   if (upErr) {

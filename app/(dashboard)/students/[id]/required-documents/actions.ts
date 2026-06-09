@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
+import { sniffUploadedFile } from '@/lib/utils/file-validation'
 
 const BUCKET = 'student-required-documents'
 
@@ -44,11 +45,17 @@ export async function uploadRequiredDocument(
   if (typeof templateId !== 'string' || !templateId) return { ok: false, error: '缺少範本 id' }
   if (typeof code !== 'string' || !code) return { ok: false, error: '缺少範本代號' }
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: '請選擇檔案' }
+  // 內容嗅探(最終權威)。必備文件允許 PDF / PNG / JPEG / WebP(對齊 UI accept)。
+  const sniff = await sniffUploadedFile(file, {
+    allowed: ['pdf', 'png', 'jpeg', 'webp'],
+    maxBytes: 10 * 1024 * 1024,
+  })
+  if (!sniff.ok) return { ok: false, error: sniff.error }
 
   const supabase = createClient()
   const path = `${studentId}/${safeFilename(code, file.name)}`
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
+    contentType: sniff.mime,
     upsert: false,
   })
   if (upErr) return { ok: false, error: `上傳失敗:${upErr.message}` }

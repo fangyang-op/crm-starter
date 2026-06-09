@@ -102,6 +102,10 @@ const TARGET_COUNTRY_LABELS: Record<(typeof TARGET_COUNTRY_VALUES)[number], stri
   Other: '其他',
 }
 
+// Stage 2-A 最小揭露 — consultant 看不到對方身分時顯示的通用訊息。正常情況
+// 由 RPC(0045)回傳同字串;此為後援,確保即使後端漏帶也不會 fall back 成空白。
+const DUP_NOTICE_FALLBACK = '此聯繫方式已存在,請聯繫管理員或主管'
+
 function defaultValuesFor(
   initial: Partial<StudentInput> | undefined,
   fallbackConsultantId: string,
@@ -187,6 +191,8 @@ export function StudentForm({
   // student_contacts so the warning explicitly tells the consultant whether
   // the number is on a student or another contact.
   const [contactPhoneMatches, setContactPhoneMatches] = useState<ContactPhoneMatch[]>([])
+  // Stage 2-A — consultant 不會拿到 matches,改收 message;以獨立 state 呈現。
+  const [contactPhoneNotice, setContactPhoneNotice] = useState<string | null>(null)
   const [ignoreContactPhoneDup, setIgnoreContactPhoneDup] = useState(false)
   const [checkingContactPhone, setCheckingContactPhone] = useState(false)
 
@@ -194,16 +200,25 @@ export function StudentForm({
     const trimmed = (value ?? '').trim()
     if (trimmed.length < 8) {
       setContactPhoneMatches([])
+      setContactPhoneNotice(null)
       return
     }
     setCheckingContactPhone(true)
     try {
       const r = await checkContactPhoneDuplicate(trimmed)
       if (r.ok && r.isDuplicate) {
-        setContactPhoneMatches(r.matches)
+        // 0045:manager/admin 拿到 matches(完整);consultant 只拿到 message。
+        if (r.matches.length > 0) {
+          setContactPhoneMatches(r.matches)
+          setContactPhoneNotice(null)
+        } else {
+          setContactPhoneMatches([])
+          setContactPhoneNotice(r.message ?? DUP_NOTICE_FALLBACK)
+        }
         setIgnoreContactPhoneDup(false)
       } else {
         setContactPhoneMatches([])
+        setContactPhoneNotice(null)
       }
     } finally {
       setCheckingContactPhone(false)
@@ -216,6 +231,8 @@ export function StudentForm({
   // existing student or click「確認為不同學生,繼續建立」which flips
   // ignoreDuplicate and unblocks submit. Only relevant in create mode.
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicatePhoneStudent | null>(null)
+  // Stage 2-A — consultant 不會拿到 existingStudent,改收 message;獨立 state 呈現。
+  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null)
   const [ignoreDuplicate, setIgnoreDuplicate] = useState(false)
   const [checkingDuplicate, setCheckingDuplicate] = useState(false)
   const initialPhone = initialValues?.phone ?? null
@@ -225,18 +242,27 @@ export function StudentForm({
     const trimmed = (value ?? '').trim()
     if (trimmed.length < 8) {
       setDuplicateWarning(null)
+      setDuplicateNotice(null)
       return
     }
     setCheckingDuplicate(true)
     try {
       const r = await checkPhoneDuplicate(trimmed)
       if (r.ok && r.isDuplicate) {
-        setDuplicateWarning(r.existingStudent)
+        // 0045:manager/admin 拿到 existingStudent(完整);consultant 只拿到 message。
+        if (r.existingStudent) {
+          setDuplicateWarning(r.existingStudent)
+          setDuplicateNotice(null)
+        } else {
+          setDuplicateWarning(null)
+          setDuplicateNotice(r.message ?? DUP_NOTICE_FALLBACK)
+        }
         // New duplicate → reset the consultant's previous override so they
         // have to acknowledge again (avoids accidental ignore-once-then-edit).
         setIgnoreDuplicate(false)
       } else {
         setDuplicateWarning(null)
+        setDuplicateNotice(null)
       }
     } finally {
       setCheckingDuplicate(false)
@@ -280,9 +306,18 @@ export function StudentForm({
 
   const handleSubmit = form.handleSubmit((data) => {
     // §2A — block submit while a duplicate is detected and not yet
-    // confirmed. Consultant must explicitly press「確認為不同學生」first.
+    // confirmed. manager/admin must explicitly press「確認為不同學生」first.
     if (mode === 'create' && duplicateWarning && !ignoreDuplicate) {
       toast.error('請先確認重複名單的處理方式')
+      return
+    }
+
+    // Stage 2-A — consultant(最小揭露):看不到對方身分、無自助覆寫,一律
+    // 擋下並提示聯繫主管。對應任務三(i)(已定案):顧問不可自助覆寫。後端
+    // createStudent 也會依角色降級 override + 以 DUPLICATE_PHONE 擋(縱深防禦),
+    // 此處只是即時 UX。
+    if (mode === 'create' && duplicateNotice) {
+      toast.error(duplicateNotice)
       return
     }
 
@@ -292,6 +327,18 @@ export function StudentForm({
       mode === 'create' &&
       fillerType === 'parent' &&
       contactPhoneMatches.length > 0 &&
+      !ignoreContactPhoneDup
+    ) {
+      toast.error('請先確認代填人手機的重複處理方式')
+      return
+    }
+
+    // Stage 2-A — consultant:代填人手機重複為提示性(無後端硬擋),隱藏身分
+    // 後仍要求確認才繼續,與 manager 行為對齊。
+    if (
+      mode === 'create' &&
+      fillerType === 'parent' &&
+      contactPhoneNotice &&
       !ignoreContactPhoneDup
     ) {
       toast.error('請先確認代填人手機的重複處理方式')
@@ -443,6 +490,15 @@ export function StudentForm({
                           onAcknowledge={() => setIgnoreContactPhoneDup(true)}
                         />
                       ) : null}
+                      {contactPhoneNotice ? (
+                        <RestrictedDuplicateNotice
+                          message={contactPhoneNotice}
+                          acknowledge={{
+                            acknowledged: ignoreContactPhoneDup,
+                            onAcknowledge: () => setIgnoreContactPhoneDup(true),
+                          }}
+                        />
+                      ) : null}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="contact-email">代填人 Email</Label>
@@ -537,6 +593,9 @@ export function StudentForm({
                       acknowledged={ignoreDuplicate}
                       onAcknowledge={() => setIgnoreDuplicate(true)}
                     />
+                  ) : null}
+                  {mode === 'create' && duplicateNotice ? (
+                    <RestrictedDuplicateNotice message={duplicateNotice} />
                   ) : null}
                 </FormItem>
               )}
@@ -1147,6 +1206,50 @@ function DuplicatePhoneAlert({
               </Button>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Stage 2-A 最小揭露 — consultant 角色看到的通用重複提示。**不含任何學生 /
+// 承辦顧問 / ID 資訊**(可識別資料已在 DB 層 find_*_phone 0045 依角色移除,
+// network response 本身就沒有 PII)。兩種用法:
+//   * 不帶 acknowledge:硬擋(學生主手機重複,需聯繫主管)。任務三(i)已定案:
+//     顧問不可自助覆寫,故不提供「繼續建立」按鈕。
+//   * 帶 acknowledge :提示性(代填人手機重複,非後端硬擋),確認後可繼續建立。
+function RestrictedDuplicateNotice({
+  message,
+  acknowledge,
+}: {
+  message: string
+  acknowledge?: { acknowledged: boolean; onAcknowledge: () => void }
+}) {
+  return (
+    <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-amber-800">{message}</p>
+          {acknowledge ? (
+            <div className="mt-2">
+              {acknowledge.acknowledged ? (
+                <span className="inline-flex items-center text-xs font-medium text-amber-800">
+                  ✓ 已確認,送出後仍會建立
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                  onClick={acknowledge.onAcknowledge}
+                >
+                  仍要繼續建立
+                </Button>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

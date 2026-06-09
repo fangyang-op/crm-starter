@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { ROLE_LABELS, type UserRole } from '@/lib/constants/roles'
+import { csvCell } from '@/lib/utils/csv'
 
 const SCREENSHOT_BUCKET = 'uat-screenshots'
 
@@ -63,11 +64,10 @@ export async function exportUatCsv(): Promise<AdminCsvResult> {
     }),
   )
 
-  const escape = (v: string | null | undefined): string => {
-    const s = String(v ?? '')
-    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-    return s
-  }
+  // Stage 2-B — CSV 儲存格統一走 csvCell:除了原本的標準跳脫(雙引號包覆 /
+  // 內部雙引號加倍),再加上 formula/CSV injection 中和(值以 = + - @ Tab CR
+  // 開頭時前置單引號),避免 Excel/Sheets 把儲存格當公式執行。
+  const escape = csvCell
 
   const header = [
     '姓名',

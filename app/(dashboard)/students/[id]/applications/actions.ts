@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { decrypt, encrypt } from '@/lib/crypto'
 import { createClient } from '@/lib/supabase/server'
+import { sniffUploadedFile } from '@/lib/utils/file-validation'
 import {
   applicationMetaSchema,
   applicationPortalSchema,
@@ -279,13 +280,16 @@ async function uploadPdf(
   file: File,
   kind: string,
 ): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
-  if (file.type !== 'application/pdf') {
+  // 便宜第一道關卡(client MIME)+ 內容嗅探(最終權威)。決定書 / 獎學金證明限 PDF。
+  if (file.type && file.type !== 'application/pdf') {
     return { ok: false, error: '檔案必須是 PDF 格式' }
   }
+  const sniff = await sniffUploadedFile(file, { allowed: ['pdf'], maxBytes: 10 * 1024 * 1024 })
+  if (!sniff.ok) return { ok: false, error: sniff.error }
   const supabase = createClient()
   const path = `${studentId}/${applicationId}/${safePdfName(kind)}`
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    contentType: 'application/pdf',
+    contentType: sniff.mime,
     upsert: false,
   })
   if (error) return { ok: false, error: `上傳失敗:${error.message}` }

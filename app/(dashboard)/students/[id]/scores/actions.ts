@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { createClient } from '@/lib/supabase/server'
+import { sniffUploadedFile } from '@/lib/utils/file-validation'
 import { scoreFormSchema, type ScoreFormInput } from '@/lib/validators/score'
 
 const BUCKET = 'student-certificates'
@@ -56,9 +57,15 @@ async function uploadCertificate(
   scoreId: string,
   file: File,
 ): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  // 內容嗅探(最終權威)。證書允許 PDF / PNG / JPEG / WebP(對齊 UI accept)。
+  const sniff = await sniffUploadedFile(file, {
+    allowed: ['pdf', 'png', 'jpeg', 'webp'],
+    maxBytes: 10 * 1024 * 1024,
+  })
+  if (!sniff.ok) return { ok: false, error: sniff.error }
   const path = `${studentId}/${scoreId}/${safeFilename(file.name)}`
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
+    contentType: sniff.mime,
     upsert: true,
   })
   if (error) return { ok: false, error: `上傳證書失敗:${error.message}` }
