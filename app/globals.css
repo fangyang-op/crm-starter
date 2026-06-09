@@ -117,12 +117,12 @@
       sans-serif;
   }
 
-  /* 全站表格邊欄對齊頁面內容區 — 第一欄左 padding 1.15rem (= 18.4px),
-     微調往左讓欄位文字對齊上方篩選 tab;最後一欄右 padding 1.25rem
-     (= 20px) 維持。中間欄維持 TableCell 預設 p-2,不影響列高與密度。 */
+  /* 全站表格邊欄對齊頁面內容區 — 第一欄左 padding 與最後一欄右 padding
+     都拉到 1.25rem (= 20px),讓表頭與篩選 tab / 搜尋欄齊邊。中間欄維持
+     TableCell 的預設 p-2,不影響列高與密度。 */
   th:first-child,
   td:first-child {
-    padding-left: 1.15rem;
+    padding-left: 1.25rem;
   }
   th:last-child,
   td:last-child {
