@@ -48,7 +48,7 @@ export async function createDocumentMaster(input: NewMasterInput): Promise<Docum
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_documents_master' as never,
     {
@@ -76,7 +76,7 @@ export async function createMasterVersion(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch the previous version's content for diff calculation. If there's
   // no prior version, we treat the prev as empty string — the first version
@@ -131,7 +131,7 @@ export async function forkVariant(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'fork_documents_variant' as never,
     {
@@ -159,7 +159,7 @@ export async function createVariantVersion(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch previous variant version content for diff
   const { data: variant, error: vErr } = await supabase

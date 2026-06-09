@@ -45,7 +45,7 @@ export async function updateApplicationStatus(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_application_status' as never,
     {
@@ -73,7 +73,7 @@ export async function updateApplicationStatus(
 }
 
 async function maybeAutoMoveStudentToPreDeparture(studentId: string): Promise<void> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: student } = await supabase
     .from('students')
@@ -110,7 +110,7 @@ export async function updateApplicationMeta(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_application_meta' as never,
     {
@@ -152,7 +152,7 @@ export async function updateApplicationPortal(
     }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_application_portal' as never,
     {
@@ -178,7 +178,7 @@ export async function revealApplicationPortalPassword(
 ): Promise<RevealPasswordResult> {
   if (!applicationId) return { ok: false, error: '缺少申請 id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   // RLS gates this select — only manager+/admin or the student's consultants
   // can read this row.
   const { data, error } = await supabase
@@ -214,7 +214,7 @@ export async function updateTuition(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_application_tuition' as never,
     {
@@ -241,7 +241,7 @@ export async function updateCommission(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_commission' as never,
     {
@@ -286,7 +286,7 @@ async function uploadPdf(
   }
   const sniff = await sniffUploadedFile(file, { allowed: ['pdf'], maxBytes: 10 * 1024 * 1024 })
   if (!sniff.ok) return { ok: false, error: sniff.error }
-  const supabase = createClient()
+  const supabase = await createClient()
   const path = `${studentId}/${applicationId}/${safePdfName(kind)}`
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     contentType: sniff.mime,
@@ -298,7 +298,7 @@ async function uploadPdf(
 
 async function removeFile(bucket: string, path: string): Promise<void> {
   if (!path) return
-  const supabase = createClient()
+  const supabase = await createClient()
   await supabase.storage.from(bucket).remove([path])
 }
 
@@ -319,7 +319,7 @@ export async function uploadDecisionFile(
     return { ok: false, error: '請選擇檔案' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: app } = await supabase
     .from('applications')
     .select('offer_letter_path, rejection_letter_path')
@@ -356,7 +356,7 @@ export async function clearDecisionFile(
   kind: 'offer' | 'rejection',
 ): Promise<ApplicationActionResult> {
   if (!applicationId) return { ok: false, error: '缺少申請 id' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: app } = await supabase
     .from('applications')
     .select('offer_letter_path, rejection_letter_path')
@@ -383,7 +383,7 @@ export type DecisionUrlResult = { ok: true; url: string } | { ok: false; error: 
 
 export async function getDecisionFileSignedUrl(path: string): Promise<DecisionUrlResult> {
   if (!path) return { ok: false, error: '缺少檔案路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(DECISION_BUCKET).createSignedUrl(path, 60)
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? '無法取得下載連結' }
@@ -413,7 +413,7 @@ export async function upsertScholarship(
   const file = formData.get('file')
   const removeAward = formData.get('remove_award') === 'true'
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: existing } = await supabase
     .from('application_scholarships' as never)
     .select('award_letter_path')
@@ -458,7 +458,7 @@ export async function upsertScholarship(
 
 export async function getScholarshipFileSignedUrl(path: string): Promise<DecisionUrlResult> {
   if (!path) return { ok: false, error: '缺少檔案路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(SCHOLARSHIP_BUCKET).createSignedUrl(path, 60)
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? '無法取得下載連結' }

@@ -8,7 +8,7 @@ type Props = {
 }
 
 export async function StudentScores({ studentId, canEdit }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: rows } = await supabase
     .from('academic_scores')

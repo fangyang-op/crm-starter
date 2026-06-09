@@ -46,8 +46,9 @@ function fmt(value: string | number | null | undefined): React.ReactNode {
   return <span>{value}</span>
 }
 
-export default async function StudentDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function StudentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
 
   // perf: 把 13 個原本串列的 await 拆成兩輪 Promise.all。
   //

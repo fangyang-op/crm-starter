@@ -27,8 +27,9 @@ function fmt(value: string | number | null | undefined): React.ReactNode {
   return <span>{value}</span>
 }
 
-export default async function SchoolDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function SchoolDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

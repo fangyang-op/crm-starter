@@ -16,7 +16,7 @@ type Props = {
 }
 
 export async function StudentDocuments({ studentId, canCreate }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: masters }, { data: lastLedger }] = await Promise.all([
     supabase

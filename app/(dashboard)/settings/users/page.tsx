@@ -30,8 +30,9 @@ type SearchParams = {
   active?: string
 }
 
-export default async function UsersListPage({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createClient()
+export default async function UsersListPage(props: { searchParams: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

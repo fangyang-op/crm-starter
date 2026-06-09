@@ -12,8 +12,9 @@ import { ResetPasswordCard } from './reset-password-card'
 
 export const metadata = { title: '編輯用戶 — 放洋全端 CRM 平台' }
 
-export default async function UserEditPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function UserEditPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

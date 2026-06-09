@@ -28,8 +28,9 @@ type SearchParams = {
 
 export const metadata = { title: '學校 — 放洋全端 CRM 平台' }
 
-export default async function SchoolsListPage({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createClient()
+export default async function SchoolsListPage(props: { searchParams: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -15,14 +15,13 @@ import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
 import { DOC_TYPE_LABELS, type DocumentType } from '@/lib/constants/document'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function MasterEditorPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string; masterId: string }
-  searchParams: { v?: string; edit?: string }
+export default async function MasterEditorPage(props: {
+  params: Promise<{ id: string; masterId: string }>
+  searchParams: Promise<{ v?: string; edit?: string }>
 }) {
-  const supabase = createClient()
+  const searchParams = await props.searchParams
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

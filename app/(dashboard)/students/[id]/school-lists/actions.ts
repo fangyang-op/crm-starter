@@ -31,7 +31,7 @@ export async function createSchoolList(input: NewSchoolListInput): Promise<Schoo
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_school_list' as never,
     {
@@ -55,7 +55,7 @@ export async function lockSchoolList(
 ): Promise<SchoolListActionResult> {
   if (!listId) return { ok: false, error: '缺少 list id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'lock_school_list' as never,
     {
@@ -77,7 +77,7 @@ export async function setCurrentSchoolList(
 ): Promise<SchoolListActionResult> {
   if (!listId) return { ok: false, error: '缺少 list id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'set_current_school_list' as never,
     {
@@ -102,7 +102,7 @@ export async function addSchoolListItem(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'add_school_list_item' as never,
     {
@@ -130,7 +130,7 @@ export async function updateSchoolListItem(
   displayOrder: number,
   notes: string | null,
 ): Promise<SchoolListActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_school_list_item' as never,
     {
@@ -153,7 +153,7 @@ export async function removeSchoolListItem(
   studentId: string,
   itemId: string,
 ): Promise<SchoolListActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'remove_school_list_item' as never,
     {
@@ -179,7 +179,7 @@ export async function expandSchoolListToApplications(
 ): Promise<ExpandSchoolListResult> {
   if (!listId) return { ok: false, error: '缺少 list id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'expand_school_list_to_applications' as never,
     {

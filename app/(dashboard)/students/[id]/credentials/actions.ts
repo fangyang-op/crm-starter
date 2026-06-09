@@ -22,7 +22,7 @@ export async function createCredential(
 ): Promise<CredentialActionResult> {
   if (!studentId) return { ok: false, error: '缺少學生 id' }
   if (!input.label.trim()) return { ok: false, error: '請填寫名稱' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const encrypted = input.password && input.password.length > 0 ? encrypt(input.password) : null
 
   const { data, error } = await supabase.rpc(
@@ -64,7 +64,7 @@ export async function updateCredential(
     encrypted = encrypt(input.password)
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_student_credential' as never,
     {
@@ -89,7 +89,7 @@ export async function deleteCredential(
   studentId: string,
   credentialId: string,
 ): Promise<CredentialActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'delete_student_credential' as never,
     { p_id: credentialId } as never,
@@ -105,7 +105,7 @@ export async function revealCredentialPassword(
   credentialId: string,
 ): Promise<RevealCredentialResult> {
   if (!credentialId) return { ok: false, error: '缺少 id' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('student_credentials' as never)
     .select('password_encrypted')

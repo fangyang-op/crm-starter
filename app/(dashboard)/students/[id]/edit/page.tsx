@@ -9,8 +9,9 @@ import { updateStudent } from '../../actions'
 
 export const metadata = { title: '編輯學生 — 放洋全端 CRM 平台' }
 
-export default async function EditStudentPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function EditStudentPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

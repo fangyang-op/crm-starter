@@ -25,7 +25,7 @@ export async function createReferrer(input: ReferrerInput): Promise<ReferrerActi
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   // 6-arg variant from migration 0022 — adds default_split_percent.
   const { data, error } = await supabase.rpc(
     'create_referrer' as never,
@@ -58,7 +58,7 @@ export async function updateReferrer(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_referrer' as never,
     {

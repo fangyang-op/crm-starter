@@ -14,7 +14,7 @@ type Props = {
 }
 
 export async function StudentSchools({ studentId, canEdit }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: lists }, { data: schools }, { data: programs }, { data: applications }] =
     await Promise.all([

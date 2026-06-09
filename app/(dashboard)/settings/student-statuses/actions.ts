@@ -41,7 +41,7 @@ export async function createStudentStatus(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_student_status' as never,
     {
@@ -72,7 +72,7 @@ export async function updateStudentStatus(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_student_status' as never,
     {

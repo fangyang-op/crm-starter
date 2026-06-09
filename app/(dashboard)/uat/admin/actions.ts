@@ -14,7 +14,7 @@ export type AdminCsvResult =
  *  自己再做一次 role check,避免有人直接呼叫繞過頁面)。signed url 短效,
  *  匯出當下產出,使用者下載 CSV 後 60 秒內點得開。*/
 export async function exportUatCsv(): Promise<AdminCsvResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

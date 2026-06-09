@@ -11,7 +11,7 @@ import { NewUserForm } from './new-user-form'
 export const metadata = { title: '新增帳號 — 放洋全端 CRM 平台' }
 
 export default async function NewUserPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -16,7 +16,7 @@ type Props = {
 }
 
 export async function WordQuotaCard({ studentId, studentName, canAddBonus }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: rows } = await supabase
     .from('word_quota_ledger')

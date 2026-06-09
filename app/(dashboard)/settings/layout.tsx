@@ -4,7 +4,7 @@ import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

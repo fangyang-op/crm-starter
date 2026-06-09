@@ -25,8 +25,9 @@ type SearchParams = {
 
 export const metadata = { title: '學生 — 放洋全端 CRM 平台' }
 
-export default async function StudentsListPage({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createClient()
+export default async function StudentsListPage(props: { searchParams: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
 
   const page = Math.max(1, Number(searchParams.page ?? 1))
   const from = (page - 1) * PAGE_SIZE

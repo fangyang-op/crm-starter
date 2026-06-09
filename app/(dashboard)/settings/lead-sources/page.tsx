@@ -23,7 +23,7 @@ import { createClient } from '@/lib/supabase/server'
 export const metadata = { title: '名單來源 — 放洋全端 CRM 平台' }
 
 export default async function LeadSourcesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

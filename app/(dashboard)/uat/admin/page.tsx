@@ -27,7 +27,7 @@ type ProfileRow = {
 }
 
 export default async function UatAdminPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/server'
 export const metadata = { title: '設定 — 放洋全端 CRM 平台' }
 
 export default async function SettingsIndexPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -20,7 +20,7 @@ type ActivityRow = {
 }
 
 export default async function DuplicateOverridesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

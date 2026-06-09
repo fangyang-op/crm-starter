@@ -14,7 +14,7 @@ export async function login(formData: FormData): Promise<LoginState> {
     return { ok: false, error: '請輸入 email 與密碼' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {

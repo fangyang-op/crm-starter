@@ -12,7 +12,7 @@ type Props = {
 }
 
 export async function StudentApplications({ studentId, canEdit, isManager }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: rows } = await supabase
     .from('applications')

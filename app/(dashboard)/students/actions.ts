@@ -64,7 +64,7 @@ export async function checkPhoneDuplicate(phone: string): Promise<DuplicatePhone
   const normalized = normalizePhone(phone)
   if (normalized.length < 8) return { ok: true, isDuplicate: false }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc('find_duplicate_student_by_phone', {
     p_phone: normalized,
   })
@@ -123,7 +123,7 @@ export async function checkContactPhoneDuplicate(
   const normalized = normalizePhone(phone)
   if (normalized.length < 8) return { ok: true, isDuplicate: false }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc('find_phone_anywhere', { p_phone: normalized })
   if (error) {
     return { ok: false, error: `查詢失敗:${(error as { message: string }).message}` }
@@ -158,7 +158,7 @@ export async function createStudent(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -324,7 +324,7 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { id: parsedId, ...patch } = parsed.data
 
   // phone-normalize §1: same canonicalisation as createStudent.
@@ -373,7 +373,7 @@ export async function changeStudentStatus(
   if (!id) return { ok: false, error: '缺少學生 id' }
   if (!newStatusId) return { ok: false, error: '缺少目標狀態' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Spec § 2.2 MVP: any → any (admin owns the whitelist now). The SD function
   // also rejects "no-op" and "unknown status" errors, so we don't double-check.
@@ -398,7 +398,7 @@ export async function changeStudentStatus(
 export async function softDeleteStudent(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: '缺少學生 id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Goes through SECURITY DEFINER function (migration 0004) because direct
   // UPDATE under RLS WITH CHECK returned "new row violates RLS" for admin

@@ -19,7 +19,7 @@ import { createClient } from '@/lib/supabase/server'
 export const metadata = { title: '轉介人 — 放洋全端 CRM 平台' }
 
 export default async function ReferrersPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: referrers, error } = await supabase
     .from('referrers')
     .select('*')
