@@ -24,14 +24,17 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: { baseURL, trace: 'on-first-retry' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  // Start the app locally; against an external E2E_BASE_URL (e.g. a Vercel
-  // preview) we skip the local server.
+  // Local: `next dev`. CI: a pre-built `next start` — `next dev` does a cold
+  // compile on the first request, which blows past the readiness timeout on CI
+  // runners. The e2e workflow job runs `npm run build` before Playwright, so
+  // `next start` comes up almost instantly. Against an external E2E_BASE_URL
+  // (e.g. a Vercel preview) we skip the local server entirely.
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev',
+        command: process.env.CI ? 'npm run start' : 'npm run dev',
         url: 'http://localhost:3000/login',
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 })

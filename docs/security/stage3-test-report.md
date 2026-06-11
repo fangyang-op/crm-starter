@@ -99,7 +99,11 @@ npm run test:e2e
 |---|---|---|
 | `unit` | lint + typecheck + 單元測試 + coverage | **否**(每次 PR/push 必跑、必綠) |
 | `integration` | RLS 整合測試 | 是(無 secrets 時自動 skip,exit 0) |
-| `e2e` | 安裝 chromium + 路由保護 E2E | 是(無 secrets 時自動 skip) |
+| `e2e` | secrets guard → `npm run build` → 安裝 chromium → 路由保護 E2E | 是(無 secrets 時 guard 直接略過 build/test,job 仍綠) |
+
+> **CI runtime / actions**:三個 job 一律跑 **Node 22**(`file-type@22` 要求 `>=22`,`package.json` `engines.node` 已對齊),actions 升到支援 Node 24 runtime 的 `actions/checkout@v5`、`actions/setup-node@v5`、`actions/upload-artifact@v6`(消除 Node 20 deprecation 警告)。
+>
+> **e2e 起 server 的方式**:`playwright.config.ts` 的 `webServer` 在 CI 下用 **預先 build 的 `next start`**(prod server),而非 `next dev`——`next dev` 會在第一個 request 才冷編譯,在 CI runner 上會超過 webServer 就緒逾時(`Timed out waiting … from config.webServer`)。故 e2e job 先 `npm run build` 再交給 Playwright 啟動 `next start`(`reuseExistingServer: false`、逾時 180s)。本機開發仍用 `next dev`。secrets 不齊時 guard step 會把整段 build/install/test 略過,job 保持綠(與測試本身的 self-skip 一致)。
 
 ### ⚠️ 需 Jo 在 GitHub repo Settings → Secrets and variables → Actions 設定(Agent 不碰 secrets):
 - `TEST_SUPABASE_URL` — Supabase **測試**專案 URL
