@@ -56,11 +56,13 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/uat', label: '內部封測回報', icon: ClipboardCheck, badgeKey: 'uat_pending' },
   // uat-portal §5: Admin 總覽 — 縮排在「測試回報」下方,僅 admin 可見。
   { href: '/uat/admin', label: 'Admin 總覽', icon: BarChart, roles: ['admin'], indent: true },
+  // 權限矩陣 §3.1:設定為 admin-only,故側欄入口只對 admin 顯示(與
+  // settings/layout.tsx 的路由閘門一致)。
   {
     href: '/settings',
     label: '設定',
     icon: Settings,
-    roles: ['manager_frontend', 'manager_backend', 'admin'],
+    roles: ['admin'],
   },
 ]
 
