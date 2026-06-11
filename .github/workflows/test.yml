@@ -1,0 +1,93 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # Always runs — no secrets needed. Lint + typecheck + unit tests + coverage.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+
+  # Cross-role RLS integration tests (附錄 C.4). Self-skips (exit 0) when the
+  # secrets below are not configured (the suite guards on hasSupabaseCreds).
+  integration:
+    runs-on: ubuntu-latest
+    env:
+      TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration
+
+  # Route-protection E2E. Needs the secrets + a browser + a running app.
+  # We build once and serve with `next start` (playwright.config picks the prod
+  # server under CI) — `next dev` cold-compiles on the first request and blows
+  # past webServer's readiness timeout on CI runners.
+  #
+  # The whole heavy path (install/build/test) is gated behind a guard step that
+  # only fires when the E2E secrets are present, so the job stays green (does
+  # nothing) on forks / PRs without secrets — mirroring the suite's self-skip.
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      TEST_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+      # The app server (next build / next start) reads these at runtime.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      ENCRYPTION_KEY: ${{ secrets.TEST_ENCRYPTION_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check E2E secrets
+        id: guard
+        run: |
+          if [ -n "$TEST_SUPABASE_URL" ] && [ -n "$E2E_TEST_PASSWORD" ] && [ -n "$ENCRYPTION_KEY" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::E2E secrets not configured — skipping build + Playwright run."
+          fi
+      - if: steps.guard.outputs.run == 'true'
+        run: npm ci
+      - if: steps.guard.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Build app (prod server for E2E)
+        if: steps.guard.outputs.run == 'true'
+        run: npm run build
+      - if: steps.guard.outputs.run == 'true'
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v6
+        if: always() && steps.guard.outputs.run == 'true'
+        with:
+          name: playwright-report
+          path: playwright-report/

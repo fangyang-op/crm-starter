@@ -12,12 +12,16 @@ node_modules/
 # Environment
 .env
 .env.local
+.env.test
 .env.development.local
 .env.test.local
 .env.production.local
 
 # Testing
 coverage/
+playwright-report/
+test-results/
+.playwright/
 
 # Misc
 .DS_Store
