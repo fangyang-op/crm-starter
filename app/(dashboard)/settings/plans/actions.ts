@@ -25,7 +25,7 @@ export async function createServicePlan(input: PlanInput): Promise<PlanActionRes
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_service_plan' as never,
     {
@@ -58,7 +58,7 @@ export async function updateServicePlan(id: string, input: PlanInput): Promise<P
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_service_plan' as never,
     {

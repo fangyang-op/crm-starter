@@ -29,7 +29,7 @@ export async function StudentDeals({
   canCreate,
   canEdit,
 }: Props) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [
     { data: deals },

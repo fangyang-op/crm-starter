@@ -32,7 +32,7 @@ export async function createDefer(
   const sniff = await sniffUploadedFile(file, { allowed: ['pdf'], maxBytes: 10 * 1024 * 1024 })
   if (!sniff.ok) return { ok: false, error: sniff.error }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const ts = new Date().toISOString().replace(/[:.]/g, '-')
   const path = `${studentId}/defer-${ts}.pdf`
@@ -65,7 +65,7 @@ export async function createDefer(
 
 export async function getDeferAgreementSignedUrl(path: string): Promise<DeferUrlResult> {
   if (!path) return { ok: false, error: '缺少檔案路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60)
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? '無法取得下載連結' }

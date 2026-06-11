@@ -25,7 +25,7 @@ export async function createDeal(input: DealInput): Promise<DealActionResult> {
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_deal' as never,
     {
@@ -65,7 +65,7 @@ export async function createDeal(input: DealInput): Promise<DealActionResult> {
 }
 
 async function maybeAutoCloseStudentStatus(studentId: string): Promise<void> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: student } = await supabase
     .from('students')
@@ -102,7 +102,7 @@ export async function updateDeal(dealId: string, input: DealInput): Promise<Deal
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   // Migration 0011 — full edit: cascades to splits + word_quota_ledger.
   const { error } = await supabase.rpc(
     'update_deal' as never,

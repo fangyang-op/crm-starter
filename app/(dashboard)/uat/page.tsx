@@ -37,7 +37,7 @@ type ResultRow = {
 }
 
 export default async function UatPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

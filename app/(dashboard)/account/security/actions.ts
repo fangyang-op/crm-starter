@@ -25,7 +25,7 @@ export async function changeOwnPassword(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
     error: userErr,

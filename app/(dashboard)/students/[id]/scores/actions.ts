@@ -52,7 +52,7 @@ function safeFilename(name: string): string {
  * Returns the storage path on success.
  */
 async function uploadCertificate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   studentId: string,
   scoreId: string,
   file: File,
@@ -73,7 +73,7 @@ async function uploadCertificate(
 }
 
 async function removeCertificate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   path: string,
 ): Promise<void> {
   // Best-effort — if the file's already gone, the row deletion still wins.
@@ -96,7 +96,7 @@ export async function createScore(formData: FormData): Promise<ScoreActionResult
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Phase 1: insert the score row WITHOUT the cert path.
   const { data, error } = await supabase.rpc(
@@ -157,7 +157,7 @@ export async function updateScore(formData: FormData): Promise<ScoreActionResult
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // We need the existing path so we can:
   //   (a) keep it if the user didn't change the file,
@@ -207,7 +207,7 @@ export async function updateScore(formData: FormData): Promise<ScoreActionResult
 export async function deleteScore(studentId: string, scoreId: string): Promise<ScoreSimpleResult> {
   if (!scoreId) return { ok: false, error: '缺少 score id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'delete_academic_score' as never,
     { p_id: scoreId } as never,
@@ -227,7 +227,7 @@ export async function deleteScore(studentId: string, scoreId: string): Promise<S
 
 export async function getCertificateSignedUrl(path: string): Promise<SignedUrlResult> {
   if (!path) return { ok: false, error: '缺少證書路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60)
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? '無法取得下載連結' }

@@ -35,7 +35,7 @@ export async function addStudentContact(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -89,7 +89,7 @@ export async function updateStudentContact(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -132,7 +132,7 @@ export async function deleteStudentContact(
 ): Promise<ContactActionResult> {
   if (!contactId) return { ok: false, error: '缺少關係人 id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

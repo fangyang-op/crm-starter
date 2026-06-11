@@ -10,12 +10,11 @@ import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
 import { DOC_TYPE_LABELS, type DocumentType } from '@/lib/constants/document'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function VariantEditorPage({
-  params,
-}: {
-  params: { id: string; masterId: string; variantId: string }
+export default async function VariantEditorPage(props: {
+  params: Promise<{ id: string; masterId: string; variantId: string }>
 }) {
-  const supabase = createClient()
+  const params = await props.params
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

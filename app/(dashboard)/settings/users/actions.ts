@@ -26,7 +26,7 @@ function flattenZodErrors(err: import('zod').ZodError): Record<string, string[]>
 async function requireAdmin(): Promise<
   { ok: true; userId: string } | { ok: false; error: string }
 > {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -54,7 +54,7 @@ export async function resetUserPassword(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Confirm the target exists in profiles. We don't blindly trust the uuid.
   const { data: target } = await supabase
@@ -123,7 +123,7 @@ export async function adminCreateUser(input: CreateUserInput): Promise<CreateUse
   }
 
   const admin = createAdminClient()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Step 1: create auth user. email_confirm: true skips the confirmation
   // email — admin is provisioning the account, the user gets the password
@@ -203,7 +203,7 @@ export async function adminUpdateUserProfile(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'admin_update_user_profile' as never,
     {
@@ -238,7 +238,7 @@ export async function adminSetUserActive(
 
   if (!userId) return { ok: false, error: '缺少 user id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error: profileErr } = await supabase.rpc(
     'admin_set_user_active' as never,
     {

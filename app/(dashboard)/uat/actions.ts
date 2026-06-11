@@ -28,7 +28,7 @@ export async function upsertUatResult(
     return { ok: false, error: '結果必須是 pass 或 fail' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -78,7 +78,7 @@ export async function uploadUatScreenshot(
   })
   if (!sniff.ok) return { ok: false, error: sniff.error }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -125,7 +125,7 @@ export async function uploadUatScreenshot(
 /** 取得截圖 signed URL,給 <img> 用。60 秒短效,前端每次預覽都重抓。 */
 export async function getUatScreenshotSignedUrl(path: string): Promise<UatSignedUrlResult> {
   if (!path) return { ok: false, error: '缺少檔案路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(SCREENSHOT_BUCKET).createSignedUrl(path, 60)
   if (error || !data) {
     return { ok: false, error: `取得連結失敗:${error?.message ?? '未知錯誤'}` }

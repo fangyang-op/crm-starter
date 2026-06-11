@@ -15,7 +15,7 @@ export async function toggleRequired(
   templateId: string,
   isRequired: boolean,
 ): Promise<SrdActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'toggle_required_document' as never,
     {
@@ -52,7 +52,7 @@ export async function uploadRequiredDocument(
   })
   if (!sniff.ok) return { ok: false, error: sniff.error }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const path = `${studentId}/${safeFilename(code, file.name)}`
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
     contentType: sniff.mime,
@@ -80,7 +80,7 @@ export async function clearRequiredDocument(
   studentId: string,
   templateId: string,
 ): Promise<SrdActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: row } = await supabase
     .from('student_required_documents' as never)
     .select('file_path')
@@ -105,7 +105,7 @@ export async function setRequiredStatus(
   status: 'pending' | 'uploaded' | 'verified' | 'rejected',
   notes?: string,
 ): Promise<SrdActionResult> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'set_required_document_status' as never,
     { p_id: recordId, p_status: status, p_notes: notes ?? null } as never,
@@ -117,7 +117,7 @@ export async function setRequiredStatus(
 
 export async function getRequiredDocSignedUrl(path: string): Promise<SrdSignedUrlResult> {
   if (!path) return { ok: false, error: '缺少檔案路徑' }
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60)
   if (error || !data?.signedUrl) {
     return { ok: false, error: error?.message ?? '無法取得下載連結' }

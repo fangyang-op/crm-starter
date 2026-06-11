@@ -30,7 +30,7 @@ export async function createSchool(input: SchoolInput): Promise<SchoolActionResu
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_school' as never,
     {
@@ -65,7 +65,7 @@ export async function updateSchool(id: string, input: SchoolInput): Promise<Scho
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_school' as never,
     {
@@ -101,7 +101,7 @@ export async function createSchoolProgram(input: SchoolProgramInput): Promise<Sc
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_school_program' as never,
     {
@@ -133,7 +133,7 @@ export async function updateSchoolProgram(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_school_program' as never,
     {

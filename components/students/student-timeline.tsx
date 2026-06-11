@@ -5,7 +5,7 @@ import { TimelineList } from '@/components/students/timeline-list'
 import { createClient } from '@/lib/supabase/server'
 
 export async function StudentTimeline({ studentId }: { studentId: string }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: activities, error } = await supabase
     .from('activity_log')

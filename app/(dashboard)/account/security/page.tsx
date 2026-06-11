@@ -7,7 +7,7 @@ import { ChangePasswordForm } from './change-password-form'
 export const metadata = { title: '帳號安全 — 放洋全端 CRM 平台' }
 
 export default async function AccountSecurityPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -50,7 +50,7 @@ export async function createLeadSource(input: LeadSourceInput): Promise<LeadSour
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase.rpc(
     'create_lead_source' as never,
     {
@@ -81,7 +81,7 @@ export async function updateLeadSource(
     return { ok: false, error: '輸入有錯誤', fieldErrors: flattenZodErrors(parsed.error) }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error } = await supabase.rpc(
     'update_lead_source' as never,
     {
@@ -109,7 +109,7 @@ export async function setLeadSourceActive(
 ): Promise<LeadSourceSimpleResult> {
   if (!id) return { ok: false, error: '缺少 id' }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   // Re-emit existing fields so we don't lose them. The SD function does a
   // full UPDATE, so we read the row first.
   const { data: currentRaw } = await supabase
