@@ -40,9 +40,8 @@ test.describe('Route protection — 附錄 C.4 #4/#5/#6 + 任務四 H', () => {
     page,
   }) => {
     await login(page, 'fe_manager')
-    // NOTE: the /settings admin-only assertion assumes the fix/settings-admin-only
-    // change is merged (it gates settings/layout.tsx on isAdmin). Until then,
-    // managers can still reach /settings on main.
+    // /settings is admin-only (settings/layout.tsx gates on isAdmin) — this branch
+    // is based on main which already includes that fix, so managers are redirected.
     expect(await landingPath(page, '/settings')).toBe('/')
     expect(await landingPath(page, '/uat/admin')).toBe('/')
     expect(await landingPath(page, '/duplicate-overrides')).toBe('/duplicate-overrides')

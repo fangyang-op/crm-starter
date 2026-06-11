@@ -114,7 +114,7 @@ npm run test:e2e
 
 ## 7. 注意事項 / 觀察
 
-1. **`/settings` E2E 的合併順序**:`route-protection.spec` 對 **manager 被擋出 /settings** 的斷言,假設 **`fix/settings-admin-only` 已 merge**(該 PR 把 `settings/layout.tsx` 收緊為 `isAdmin`)。本分支 off `main`,`main` 尚未含該 fix。**請先 merge `fix/settings-admin-only`,再 merge 本套件**,否則該條 E2E 會失敗(manager 仍能進 /settings)。單元 + 整合測試無此相依。
+1. **`/settings` admin-only 基底(已對齊)**:`route-protection.spec` 對 **manager 被擋出 /settings** 的斷言依賴 `settings/layout.tsx` 收緊為 `isAdmin`。該 fix 已 merge 進 `main`(PR #2,`298c078`),且本分支**已 merge 最新 `main`**,基底含 admin-only。此相依已解除,無合併順序問題。
 2. **低風險觀察(非本階段修)**:`isValidTaiwanPhone` 的市話 regex `0[2-9]\d{7,8}` 會把 9 碼「09…」當合法市話(9 ∈ [2-9])。已用一條測試**記錄此既有行為**(非斷言修正)。
 3. 整合 / E2E 在 Agent 沙箱外跑;但整合測試**已在開發階段對真實 Supabase 測試庫實跑通過**(本報告 §2)。
 
