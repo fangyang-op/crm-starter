@@ -28,9 +28,9 @@
 | 1A 單元 | `tests/unit/crypto.test.ts` | 5 | 同上 | ✅ 綠 |
 | 1A 單元 | `tests/unit/utils.test.ts` | 3 | 同上 | ✅ 綠 |
 | 1B RLS 整合 | `tests/integration/rls.integration.test.ts` | 9 | Jo 本機 / CI(需 Supabase) | ✅ 綠(已對真實 Supabase 跑過) |
-| 1C 路由 E2E | `tests/e2e/route-protection.spec.ts` | 4 | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ⏳ 已寫,待 CI 跑 |
+| 1C 路由 E2E | `tests/e2e/route-protection.spec.ts` | 4 | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ✅ 綠(已對 admin-only 基底 + 本機 dev server 實跑 4/4) |
 
-**單元測試結果(沙箱):60 passed / 60。** 整合測試已對真實 Supabase 測試庫實跑 **9 passed / 9**(seed → 斷言 → teardown,**驗證 teardown 後 0 殘留**,可重複執行)。
+**全部 Phase 1 皆已實跑驗證**:單元 **60/60**(沙箱)、RLS 整合 **9/9**(真實 Supabase,seed→斷言→teardown,0 殘留)、路由 E2E **4/4**(本機 Chromium + dev server,基底已含 settings admin-only;teardown 後 0 殘留)。三類測試皆可重複執行。
 
 ---
 

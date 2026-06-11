@@ -1,15 +1,13 @@
 import { existsSync } from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import { defineConfig, devices } from '@playwright/test'
 import { config as loadEnv } from 'dotenv'
 
-const root = path.dirname(fileURLToPath(import.meta.url))
-// Load test env (gitignored) so globalSetup/teardown + the app server see creds.
+// Playwright loads this config as CJS — avoid import.meta (ESM-only). Env is
+// resolved relative to the project root (the cwd when running `playwright test`)
+// so globalSetup/teardown + the app server see the credentials.
 for (const f of ['.env.test', '.env.local']) {
-  const p = path.join(root, f)
-  if (existsSync(p)) loadEnv({ path: p })
+  if (existsSync(f)) loadEnv({ path: f })
 }
 
 const baseURL = process.env.E2E_BASE_URL || 'http://localhost:3000'

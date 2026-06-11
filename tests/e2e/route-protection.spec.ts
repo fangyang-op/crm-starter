@@ -13,6 +13,9 @@ test.skip(
 )
 
 async function login(page: Page, role: Role) {
+  // Clear any existing session first, otherwise middleware redirects /login → /
+  // (when a test logs in as a second role within the same context).
+  await page.context().clearCookies()
   await page.goto('/login')
   await page.fill('#email', emailFor(role))
   await page.fill('#password', TEST_USER_PASSWORD)
