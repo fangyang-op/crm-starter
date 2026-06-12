@@ -154,19 +154,17 @@ export async function seedFixtures(): Promise<Fixtures> {
       id = data.user!.id
     }
     userIds[a.role] = id
-    const { error: pErr } = await sb
-      .from('profiles')
-      .upsert(
-        {
-          id,
-          email: a.email,
-          full_name: '【T3】' + a.role,
-          role: a.dbRole,
-          department: a.dept,
-          is_active: true,
-        },
-        { onConflict: 'id' },
-      )
+    const { error: pErr } = await sb.from('profiles').upsert(
+      {
+        id,
+        email: a.email,
+        full_name: '【T3】' + a.role,
+        role: a.dbRole,
+        department: a.dept,
+        is_active: true,
+      },
+      { onConflict: 'id' },
+    )
     if (pErr) throw new Error('profile upsert ' + a.email + ': ' + pErr.message)
   }
 
@@ -249,4 +247,32 @@ export async function teardownFixtures(): Promise<void> {
       await sb.auth.admin.deleteUser(u.id)
     }
   }
+}
+
+/** Re-derive the seeded fixture ids by querying (users by email, students by
+ *  name). E2E specs run in a separate process from globalSetup, so they cannot
+ *  receive the `Fixtures` object seedFixtures() returns — they call this to
+ *  resolve ids for service()-side seeding/assertions. Best-effort: only fills
+ *  in ids that currently exist. */
+export async function loadFixtureIds(sb: SupabaseClient = service()): Promise<Fixtures> {
+  const userIds = {} as Record<Role, string>
+  for (const a of ACCOUNTS) {
+    const u = await findUserByEmail(sb, a.email)
+    if (u) userIds[a.role] = u.id
+  }
+  const studentIds = {} as Fixtures['studentIds']
+  const studentPhones = {} as Fixtures['studentPhones']
+  for (const s of STUDENTS) {
+    const { data } = await sb
+      .from('students')
+      .select('id')
+      .eq('full_name', s.name)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (data) {
+      studentIds[s.key] = (data as { id: string }).id
+      studentPhones[s.key] = s.phone
+    }
+  }
+  return { userIds, studentIds, studentPhones }
 }
