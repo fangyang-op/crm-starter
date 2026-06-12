@@ -31,10 +31,11 @@
 | 2-C 最小揭露整合 | `tests/integration/select-minimal-disclosure.integration.test.ts` | 3 | Jo 本機 / CI(需 Supabase) | ✅ 綠(`select('*')` 收斂後的欄位斷言;見 stage2c changelog) |
 | **2 核心流程整合** | `tests/integration/phase2-flows.integration.test.ts` | **10** | Jo 本機 / CI(需 Supabase) | ✅ 綠(D 成交授權 / F signed URL TTL+RLS / G 帳密 AES+RLS / H uat RLS;見 §9) |
 | 1C 路由 E2E | `tests/e2e/route-protection.spec.ts` | 4 | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ✅ 綠(已對 admin-only 基底 + 本機 dev server 實跑 4/4) |
+| **2 核心流程 E2E** | `tests/e2e/flow-*.spec.ts`(C/D/E/F/G/H) | **8** | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ✅ 綠(本機 prod-server 連跑 2 次 12/12 穩定、0 殘留;見 §9) |
 
 > 註:整合測試共用固定身分 fixtures、對同一真實 DB,故 `test:integration` 以 `--no-file-parallelism` 序列執行(避免多檔 `seedFixtures` 搶建同一批 auth 使用者)。Phase-2 額外 fixtures(學校 / 申請 / 儲存物件)由 `tests/integration/helpers/phase2-fixtures.ts` 的 `seedPhase2` / `teardownPhase2` 提供,前綴 `【T3】` 可辨識、零殘留;`teardownPhase2` 必須在 `teardownFixtures` 之前跑(`deals`/`schools` 無 student cascade)。
 
-**全部皆已實跑驗證**:單元 **60/60**(沙箱)、整合 **22/22**(真實 Supabase,seed→斷言→teardown,0 殘留;含 RLS 9 + Stage 2-C 最小揭露 3 + Phase 2 核心流程 10)、路由 E2E **4/4**(本機 Chromium + dev/prod server,基底已含 settings admin-only;teardown 後 0 殘留)。皆可重複執行。
+**全部皆已實跑驗證**:單元 **60/60**(沙箱)、整合 **22/22**(真實 Supabase,seed→斷言→teardown,0 殘留;含 RLS 9 + Stage 2-C 最小揭露 3 + Phase 2 核心流程 10)、E2E **12/12**(本機 Chromium + prod server;含路由保護 4 + Phase 2 核心流程 8;連跑 2 次穩定、teardown 後 0 殘留)。皆可重複執行。
 
 > **附錄 C.4 #9(Storage 下載)**:由「設計已驗」升級為「**整合實測**」——`phase2-flows` 的 Flow F 證明 signed URL 確為 60s 短效(解 JWT `exp-iat===60`)、私有 bucket、且 RLS fail-closed(承辦顧問可取得、非承辦顧問被擋、主管可取得)。
 
@@ -153,6 +154,17 @@ npm run test:e2e
 
 > 誠實聲明:演算法層(`csvCell` CSV 中和、`sniffUploadedFile` 內容嗅探、`crypto` AES)已由**單元測試**覆蓋;Phase 2 證明的是**串接 + 角色閘門 + at-rest + RLS**,非演算法本身。
 
-**Phase 2 — UI 串接 E2E(下一個 PR)**:建檔重複偵測(顧問最小揭露 + 無覆寫鈕、主管覆寫 + `/duplicate-overrides` 記錄)、成交→分頁解鎖、上傳改名假檔被嗅探擋、帳密設定/顯示、CSV 匯出下載 + 公式中和、signed URL 下載 popup。映射與選擇器已備妥。
+**Phase 2 — UI 串接 E2E(本 PR,已完成)** — `tests/e2e/flow-*.spec.ts`(8 條;全 E2E 連跑 2 次 12/12 穩定、0 殘留):
 
-**Phase 3(後續 PR)**:擴大單元/整合覆蓋(server actions / 元件 / 其餘 validators);**CI gate**(branch protection required status checks — 需 Jo 在 GitHub 操作);可選 coverage 門檻;E2E 穩定性(等待條件 / retry)。
+| 流程 | E2E 斷言(真實瀏覽器 + 各角色登入) |
+|---|---|
+| **C 建檔 + 重複偵測** | 顧問:重複電話 → 最小揭露提示、**無覆寫鈕**、無對方姓名外洩;主管:完整揭露(姓名 + 覆寫鈕);主管覆寫 → 建檔成功 + 寫 `activity_log duplicate_phone_override` + 出現在 `/duplicate-overrides`(建立的學生測後即清)。 |
+| **D 成交 → 解鎖** | feA 起始選校表/文件/申請分頁鎖定;經 UI 建立成交 → 三分頁解鎖。 |
+| **E 文件上傳** | 改名假檔(EXE→.pdf)經 `setInputFiles` 上傳 → 內容嗅探擋下「檔案格式無法辨識或不被接受」,不寫入 Storage(無殘留)。 |
+| **F 文件下載** | 承辦顧問點「下載」→ 開啟私有 bucket 的 signed URL(攔截 `…/object/sign/…?token=`)。 |
+| **G 申請/帳密** | 承辦顧問經 UI 設定 Portal 密碼 → 「已設定」+ 顯示還原為輸入值。 |
+| **H CSV 匯出** | admin 匯出 CSV(BOM/CRLF/表頭),公式型 備註 被中和(`'=cmd`,無 `,=cmd`);非 admin 被擋由路由 E2E 覆蓋。 |
+
+> E2E 基建:共用 `tests/e2e/helpers.ts` 的 `login()`、`loadFixtureIds()`(specs 與 globalSetup 不同 process,故以名稱/email 重新解析 fixture id);Phase-2 額外 fixtures 由 `seedPhase2`/`teardownPhase2` 提供,`globalTeardown` 會先做防禦性 `teardownPhase2` 再 `teardownFixtures`(避免 spec 中途失敗殘留 deal 導致 FK)。Playwright `workers:1`(共用 DB);CI 用 build + `next start`(避免 dev 冷編譯逾時)。
+
+**Phase 3(下一個 PR)**:擴大單元/整合覆蓋(server actions / 元件 / 其餘 validators);**CI gate**(branch protection required status checks — 需 Jo 在 GitHub 操作);可選 coverage 門檻。
