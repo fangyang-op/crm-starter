@@ -31,7 +31,9 @@ export default async function PlansPage() {
 
   const { data: plans, error } = await supabase
     .from('service_plans')
-    .select('*')
+    .select(
+      'id, code, name, description, base_price, currency, included_school_count, included_word_quota, scope_country, scope_degree, is_active, display_order, created_at',
+    )
     .order('display_order')
     .order('created_at', { ascending: false })
 

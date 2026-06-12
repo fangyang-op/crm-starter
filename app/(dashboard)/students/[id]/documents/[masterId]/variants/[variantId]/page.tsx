@@ -25,7 +25,9 @@ export default async function VariantEditorPage(props: {
 
   const { data: variant } = await supabase
     .from('documents_variants')
-    .select('*, master:documents_master!inner(id, doc_type, title, student_id)')
+    .select(
+      'id, master_id, application_id, current_version_id, master:documents_master!inner(id, doc_type, title, student_id)',
+    )
     .eq('id', params.variantId)
     .eq('master_id', params.masterId)
     .maybeSingle()

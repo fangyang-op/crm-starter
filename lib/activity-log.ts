@@ -26,6 +26,15 @@ import type { Database } from '@/types/database'
 
 type ActivityRow = Database['public']['Tables']['activity_log']['Row']
 
+// Stage 2-C (select 最小揭露):時間軸只需要這幾個欄位。student-timeline.tsx 的
+// 查詢已收斂成這組欄位,TimelineList 再餵進 formatActivity。用 Pick(而非整個
+// Row)讓「最小揭露」的型別形狀從查詢一路貫穿到渲染——避免 entity_id /
+// entity_type 等未使用欄位被序列化到瀏覽器。
+export type TimelineActivity = Pick<
+  ActivityRow,
+  'id' | 'action' | 'actor_id' | 'created_at' | 'description' | 'payload'
+>
+
 // Categories drive the filter chips in the timeline UI. Keep this list short
 // and product-meaningful — these are user-visible filter labels.
 export const TIMELINE_CATEGORIES = {
@@ -61,7 +70,7 @@ function commissionStatusLabel(s: unknown): string | null {
   return cfg ? cfg.label : s
 }
 
-export function formatActivity(activity: ActivityRow, actorName?: string): ActivityDisplay {
+export function formatActivity(activity: TimelineActivity, actorName?: string): ActivityDisplay {
   const actor = actorName ?? '系統'
   const payload = (activity.payload ?? {}) as Record<string, unknown>
 

@@ -22,7 +22,9 @@ export default async function EditStudentPage(props: { params: Promise<{ id: str
 
   const { data: student } = await supabase
     .from('students')
-    .select('*')
+    .select(
+      'id, full_name, english_name, email, phone, line_id, birth_date, current_school, current_major, current_degree, graduation_year, target_country, target_degree, target_major, target_intake, lead_source_id, lead_source_user_id, lead_source_referrer_id, lead_source_note, frontend_consultant_id, backend_consultant_id, notes, tags',
+    )
     .eq('id', params.id)
     .is('deleted_at', null)
     .maybeSingle()

@@ -22,7 +22,9 @@ export default async function ReferrersPage() {
   const supabase = await createClient()
   const { data: referrers, error } = await supabase
     .from('referrers')
-    .select('*')
+    .select(
+      'id, name, type, contact_email, contact_phone, default_split_percent, notes, is_active, created_at',
+    )
     .order('created_at', { ascending: false })
 
   return (

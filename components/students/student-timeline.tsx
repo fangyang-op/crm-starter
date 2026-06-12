@@ -9,7 +9,7 @@ export async function StudentTimeline({ studentId }: { studentId: string }) {
 
   const { data: activities, error } = await supabase
     .from('activity_log')
-    .select('*')
+    .select('id, action, actor_id, created_at, description, payload, student_id')
     .eq('student_id', studentId)
     .order('created_at', { ascending: false })
     .limit(100)

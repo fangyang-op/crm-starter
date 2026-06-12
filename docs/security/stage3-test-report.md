@@ -28,9 +28,12 @@
 | 1A 單元 | `tests/unit/crypto.test.ts` | 5 | 同上 | ✅ 綠 |
 | 1A 單元 | `tests/unit/utils.test.ts` | 3 | 同上 | ✅ 綠 |
 | 1B RLS 整合 | `tests/integration/rls.integration.test.ts` | 9 | Jo 本機 / CI(需 Supabase) | ✅ 綠(已對真實 Supabase 跑過) |
+| 2-C 最小揭露整合 | `tests/integration/select-minimal-disclosure.integration.test.ts` | 3 | Jo 本機 / CI(需 Supabase) | ✅ 綠(`select('*')` 收斂後的欄位斷言;見 stage2c changelog) |
 | 1C 路由 E2E | `tests/e2e/route-protection.spec.ts` | 4 | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ✅ 綠(已對 admin-only 基底 + 本機 dev server 實跑 4/4) |
 
-**全部 Phase 1 皆已實跑驗證**:單元 **60/60**(沙箱)、RLS 整合 **9/9**(真實 Supabase,seed→斷言→teardown,0 殘留)、路由 E2E **4/4**(本機 Chromium + dev server,基底已含 settings admin-only;teardown 後 0 殘留)。三類測試皆可重複執行。
+> 註:整合測試共用固定身分 fixtures、對同一真實 DB,故 `test:integration` 以 `--no-file-parallelism` 序列執行(避免兩檔 `seedFixtures` 搶建同一批 auth 使用者)。
+
+**全部皆已實跑驗證**:單元 **60/60**(沙箱)、整合 **12/12**(真實 Supabase,seed→斷言→teardown,0 殘留;含 RLS 9 + Stage 2-C 最小揭露 3)、路由 E2E **4/4**(本機 Chromium + dev/prod server,基底已含 settings admin-only;teardown 後 0 殘留)。三類測試皆可重複執行。
 
 ---
 

@@ -41,7 +41,9 @@ export async function StudentDeals({
   ] = await Promise.all([
     supabase
       .from('deals')
-      .select('*, plan:service_plans!inner(code, name)')
+      .select(
+        'id, student_id, plan_id, signed_at, currency, final_amount, base_amount, addon_amount, discount_amount, discount_reason, extra_school_count, extra_word_quota, payment_status, contract_no, notes, plan:service_plans!inner(code, name)',
+      )
       .eq('student_id', studentId)
       .order('signed_at', { ascending: false }),
     // Fetch ALL plans (not just active) so the edit form can render a deal
@@ -144,7 +146,12 @@ export async function StudentDeals({
   }
   const { data: splits } =
     dealIds.length > 0
-      ? await supabase.from('deal_commission_splits').select('*').in('deal_id', dealIds)
+      ? await supabase
+          .from('deal_commission_splits')
+          .select(
+            'id, deal_id, role_in_deal, recipient_user_id, recipient_referrer_id, percentage, amount, notes',
+          )
+          .in('deal_id', dealIds)
       : { data: [] as SplitRow[] }
   const splitsByDeal = new Map<string, SplitRow[]>()
   for (const s of (splits ?? []) as SplitRow[]) {
