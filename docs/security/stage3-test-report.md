@@ -29,11 +29,14 @@
 | 1A 單元 | `tests/unit/utils.test.ts` | 3 | 同上 | ✅ 綠 |
 | 1B RLS 整合 | `tests/integration/rls.integration.test.ts` | 9 | Jo 本機 / CI(需 Supabase) | ✅ 綠(已對真實 Supabase 跑過) |
 | 2-C 最小揭露整合 | `tests/integration/select-minimal-disclosure.integration.test.ts` | 3 | Jo 本機 / CI(需 Supabase) | ✅ 綠(`select('*')` 收斂後的欄位斷言;見 stage2c changelog) |
+| **2 核心流程整合** | `tests/integration/phase2-flows.integration.test.ts` | **10** | Jo 本機 / CI(需 Supabase) | ✅ 綠(D 成交授權 / F signed URL TTL+RLS / G 帳密 AES+RLS / H uat RLS;見 §9) |
 | 1C 路由 E2E | `tests/e2e/route-protection.spec.ts` | 4 | Jo 本機 / CI(需瀏覽器 + app + Supabase) | ✅ 綠(已對 admin-only 基底 + 本機 dev server 實跑 4/4) |
 
-> 註:整合測試共用固定身分 fixtures、對同一真實 DB,故 `test:integration` 以 `--no-file-parallelism` 序列執行(避免兩檔 `seedFixtures` 搶建同一批 auth 使用者)。
+> 註:整合測試共用固定身分 fixtures、對同一真實 DB,故 `test:integration` 以 `--no-file-parallelism` 序列執行(避免多檔 `seedFixtures` 搶建同一批 auth 使用者)。Phase-2 額外 fixtures(學校 / 申請 / 儲存物件)由 `tests/integration/helpers/phase2-fixtures.ts` 的 `seedPhase2` / `teardownPhase2` 提供,前綴 `【T3】` 可辨識、零殘留;`teardownPhase2` 必須在 `teardownFixtures` 之前跑(`deals`/`schools` 無 student cascade)。
 
-**全部皆已實跑驗證**:單元 **60/60**(沙箱)、整合 **12/12**(真實 Supabase,seed→斷言→teardown,0 殘留;含 RLS 9 + Stage 2-C 最小揭露 3)、路由 E2E **4/4**(本機 Chromium + dev/prod server,基底已含 settings admin-only;teardown 後 0 殘留)。三類測試皆可重複執行。
+**全部皆已實跑驗證**:單元 **60/60**(沙箱)、整合 **22/22**(真實 Supabase,seed→斷言→teardown,0 殘留;含 RLS 9 + Stage 2-C 最小揭露 3 + Phase 2 核心流程 10)、路由 E2E **4/4**(本機 Chromium + dev/prod server,基底已含 settings admin-only;teardown 後 0 殘留)。皆可重複執行。
+
+> **附錄 C.4 #9(Storage 下載)**:由「設計已驗」升級為「**整合實測**」——`phase2-flows` 的 Flow F 證明 signed URL 確為 60s 短效(解 JWT `exp-iat===60`)、私有 bucket、且 RLS fail-closed(承辦顧問可取得、非承辦顧問被擋、主管可取得)。
 
 ---
 
@@ -135,8 +138,21 @@ npm run test:e2e
 
 ---
 
-## 9. 後續(Phase 2 / 3,本次未做)
+## 9. Phase 2 / 3 進度
 
-- **Phase 2**:建檔+重複偵測、成交解鎖、上傳(改名假檔被擋)/下載、申請/帳密、CSV 匯出 的 E2E。
-- **Phase 3**:把單元覆蓋擴到 server actions / 元件 / 其餘 validators;補 coverage 門檻(CI gate);
-- (本套件建立後)Stage 2-C `select('*')` 最小揭露 — 屆時有測試接著改才安全。
+採「整合優先、E2E 後續」交付(Jo 裁示):核心流程的**安全核心**先以整合測試落地(穩定、快、可本機完整驗證),UI 串接 E2E 隨後一個 PR。
+
+**Phase 2 — 核心流程安全核心(本 PR,已完成)** — `tests/integration/phase2-flows.integration.test.ts`(10 條,真實 Supabase 22/22 綠):
+
+| 流程 | 斷言(anon key + 各角色 session) |
+|---|---|
+| **D 成交 → 解鎖** | `create_deal`:非承辦顧問被擋(RPC 42501、無 deal 寫入)、承辦顧問可、主管可。解鎖的閘門(hasDeal)只能由 deal 翻轉,故此即解鎖的伺服器端依據。 |
+| **F 文件下載** | signed URL 為 60s 短效(解 JWT `exp-iat===60`)、私有 bucket、storage RLS:承辦顧問可取得且 URL 實際 200、非承辦顧問被擋、主管可取得。**= 附錄 C.4 #9 升級**。 |
+| **G 申請/帳密** | portal 密碼 AES-256-GCM:承辦顧問設定後 at-rest 為密文(≠ 明文、base64)、`decrypt` 還原;非承辦顧問讀被 RLS 濾為 null、寫 fail-closed(42501);主管可寫且還原。 |
+| **H CSV 匯出** | `uat_results` per-user RLS:顧問讀不到他人(admin)的結果、admin backstop 可讀 — 即 admin-only 匯出的資料面底層保證。 |
+
+> 誠實聲明:演算法層(`csvCell` CSV 中和、`sniffUploadedFile` 內容嗅探、`crypto` AES)已由**單元測試**覆蓋;Phase 2 證明的是**串接 + 角色閘門 + at-rest + RLS**,非演算法本身。
+
+**Phase 2 — UI 串接 E2E(下一個 PR)**:建檔重複偵測(顧問最小揭露 + 無覆寫鈕、主管覆寫 + `/duplicate-overrides` 記錄)、成交→分頁解鎖、上傳改名假檔被嗅探擋、帳密設定/顯示、CSV 匯出下載 + 公式中和、signed URL 下載 popup。映射與選擇器已備妥。
+
+**Phase 3(後續 PR)**:擴大單元/整合覆蓋(server actions / 元件 / 其餘 validators);**CI gate**(branch protection required status checks — 需 Jo 在 GitHub 操作);可選 coverage 門檻;E2E 穩定性(等待條件 / retry)。
