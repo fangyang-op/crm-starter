@@ -81,7 +81,14 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     statusesResult,
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from('students').select('*').eq('id', params.id).is('deleted_at', null).maybeSingle(),
+    supabase
+      .from('students')
+      .select(
+        'id, full_name, english_name, email, phone, line_id, birth_date, current_school, current_major, current_degree, graduation_year, target_country, target_degree, target_major, target_intake, lead_source_id, lead_source_note, lead_source_user_id, lead_source_referrer_id, frontend_consultant_id, backend_consultant_id, notes, created_at, status_id, deleted_at',
+      )
+      .eq('id', params.id)
+      .is('deleted_at', null)
+      .maybeSingle(),
     // Spec § 2.9: 選校表 / 文件 / 申請 tabs 鎖在 deal>0;deals 沒 soft-delete。
     supabase.from('deals').select('id', { count: 'exact', head: true }).eq('student_id', params.id),
     // Spec § 2.10: visa/housing 帳密卡片在至少一筆 application 達到 enrolled

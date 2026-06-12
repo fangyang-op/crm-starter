@@ -40,7 +40,9 @@ export default async function SchoolDetailPage(props: { params: Promise<{ id: st
 
   const { data: school } = await supabase
     .from('schools')
-    .select('*')
+    .select(
+      'id, name_en, name_zh, short_name, country, state_or_region, city, website, ranking_qs, ranking_us_news, is_partner, partner_commission_rate, partner_notes, is_active',
+    )
     .eq('id', params.id)
     .maybeSingle()
 
@@ -48,7 +50,9 @@ export default async function SchoolDetailPage(props: { params: Promise<{ id: st
 
   const { data: programs } = await supabase
     .from('school_programs')
-    .select('*')
+    .select(
+      'id, program_name, degree_level, major_category, application_deadline_round1, application_deadline_round2, notes',
+    )
     .eq('school_id', school.id)
     .order('degree_level')
     .order('program_name')

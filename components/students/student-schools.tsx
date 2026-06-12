@@ -20,7 +20,7 @@ export async function StudentSchools({ studentId, canEdit }: Props) {
     await Promise.all([
       supabase
         .from('school_lists')
-        .select('*')
+        .select('id, version_number, name, is_locked, is_current, created_at, student_id')
         .eq('student_id', studentId)
         .order('version_number', { ascending: false }),
       supabase
@@ -54,7 +54,12 @@ export async function StudentSchools({ studentId, canEdit }: Props) {
   }
   const { data: items } =
     listIds.length > 0
-      ? await supabase.from('school_list_items').select('*').in('school_list_id', listIds)
+      ? await supabase
+          .from('school_list_items')
+          .select(
+            'id, school_list_id, school_id, program_id, program_name_override, tier, display_order, notes',
+          )
+          .in('school_list_id', listIds)
       : { data: [] as RawItem[] }
 
   const schoolMap = new Map(

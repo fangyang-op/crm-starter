@@ -32,7 +32,7 @@ export default async function MasterEditorPage(props: {
 
   const { data: master } = await supabase
     .from('documents_master')
-    .select('*')
+    .select('id, current_version_id, doc_type, title, description')
     .eq('id', params.masterId)
     .eq('student_id', params.id)
     .maybeSingle()

@@ -7,15 +7,13 @@ import { cn } from '@/lib/utils'
 import {
   formatActivity,
   formatActivityTime,
+  type TimelineActivity,
   TIMELINE_CATEGORIES,
   type TimelineCategory,
 } from '@/lib/activity-log'
-import type { Database } from '@/types/database'
-
-type ActivityRow = Database['public']['Tables']['activity_log']['Row']
 
 type Props = {
-  activities: ActivityRow[]
+  activities: TimelineActivity[]
   actorMap: Record<string, string>
 }
 
