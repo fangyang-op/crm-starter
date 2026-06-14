@@ -2,24 +2,18 @@ import { redirect } from 'next/navigation'
 
 import { Sidebar, type SidebarBadges } from '@/components/layouts/sidebar'
 import { Topbar } from '@/components/layouts/topbar'
+import { getCurrentProfile, getCurrentUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import type { UserRole } from '@/lib/constants/roles'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  // React.cache-memoized: the leaf page + child Server Components reuse this same
+  // getUser()/profile result within the render, so auth runs once per nav. (Tier 1)
+  const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role, full_name, display_name, email, avatar_url')
-    .eq('id', user.id)
-    .single()
-
-  if (error || !profile) {
+  const profile = await getCurrentProfile()
+  if (!profile) {
     // No profile row for this auth user — bootstrap is incomplete. Force re-login.
     redirect('/login')
   }
@@ -30,7 +24,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // dashboard layout 因 UAT 表查不到就壞掉(例如 migration 未跑)。
   const badges: SidebarBadges = { uat_pending: 0 }
   try {
-    const role = profile.role as UserRole
+    const role: UserRole = profile.role
+    const supabase = await createClient()
     const [{ data: chaptersRaw }, { data: itemsRaw }, { count: filledCount }] = await Promise.all([
       supabase
         .from('uat_chapters' as never)

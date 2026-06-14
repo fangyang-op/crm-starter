@@ -14,8 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { isManagerOrAdmin, type UserRole } from '@/lib/constants/roles'
+import { isManagerOrAdmin } from '@/lib/constants/roles'
 import { COUNTRY_LABELS, COUNTRY_VALUES } from '@/lib/constants/school'
+import { getCurrentProfile } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 
 const PAGE_SIZE = 30
@@ -31,13 +32,6 @@ export const metadata = { title: '學校 — 放洋全端 CRM 平台' }
 export default async function SchoolsListPage(props: { searchParams: Promise<SearchParams> }) {
   const searchParams = await props.searchParams
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const { data: me } = user
-    ? await supabase.from('profiles').select('role').eq('id', user.id).single()
-    : { data: null }
-  const canCreate = me ? isManagerOrAdmin(me.role as UserRole) : false
 
   const page = Math.max(1, Number(searchParams.page ?? 1))
   const from = (page - 1) * PAGE_SIZE
@@ -65,7 +59,11 @@ export default async function SchoolsListPage(props: { searchParams: Promise<Sea
     query = query.eq('country', country)
   }
 
-  const { data: schools, count, error } = await query
+  // Tier 1: the role lookup (React.cache-shared with the layout) is independent
+  // of the list query — run them in parallel instead of a serial waterfall.
+  const [profile, listResult] = await Promise.all([getCurrentProfile(), query])
+  const { data: schools, count, error } = listResult
+  const canCreate = profile ? isManagerOrAdmin(profile.role) : false
 
   const totalPages = count ? Math.max(1, Math.ceil(count / PAGE_SIZE)) : 1
 

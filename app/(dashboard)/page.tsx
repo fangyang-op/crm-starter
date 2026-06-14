@@ -2,22 +2,30 @@ import Link from 'next/link'
 
 import { AlertTriangle, ArrowRight, LayoutDashboard, Lightbulb } from 'lucide-react'
 
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function HomePage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
 
-  // v1.1 §3A: surface students who are 已成交+ (status category 'closed' or
-  // 'application') but have no backend_consultant_id assigned. RLS already
-  // narrows what each viewer sees, so non-managers will see 0 and the widget
-  // self-hides — no per-role check needed here.
-  const { data: targetStatuses } = await supabase
-    .from('student_statuses' as never)
-    .select('id')
-    .in('category' as never, ['closed', 'application'] as never)
+  // Tier 1: the three independent reads run in parallel (was a serial waterfall).
+  // user comes from the React.cache-shared getUser (no extra round-trip beyond
+  // the layout's). targetStatuses + the dup-override count have no dependency on
+  // each other; only the unassigned-backend count depends on targetStatusIds.
+  //
+  // v1.1 §3A / duplicate-prevention §4: RLS already narrows what each viewer
+  // sees, so non-managers get 0 and both widgets self-hide — no per-role check.
+  const [user, { data: targetStatuses }, { count: dupOverrideCountRaw }] = await Promise.all([
+    getCurrentUser(),
+    supabase
+      .from('student_statuses' as never)
+      .select('id')
+      .in('category' as never, ['closed', 'application'] as never),
+    supabase
+      .from('activity_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('action', 'duplicate_phone_override'),
+  ])
   const targetStatusIds = ((targetStatuses ?? []) as unknown as Array<{ id: string }>).map(
     (s) => s.id,
   )
@@ -33,14 +41,6 @@ export default async function HomePage() {
     unassignedBackendCount = count ?? 0
   }
 
-  // duplicate-prevention §4: count of `duplicate_phone_override` activity_log
-  // rows the viewer can see. activity_log RLS already restricts non-managers
-  // to their own students' rows, so non-managers naturally see 0 in normal
-  // flow — same self-hiding pattern as the widget above.
-  const { count: dupOverrideCountRaw } = await supabase
-    .from('activity_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('action', 'duplicate_phone_override')
   const dupOverrideCount = dupOverrideCountRaw ?? 0
 
   return (
